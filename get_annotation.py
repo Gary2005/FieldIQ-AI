@@ -16,6 +16,9 @@ from plugins.calibration.nbjw_calib.utils.utils_heatmap import (
     coords_to_dict  
 )  
 from tracklab.utils.download import download_file  
+
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  
+device = "cuda:7"
   
 # Function to convert keypoints to lines (from the repository)  
 def kp_to_line(keypoints):  
@@ -153,8 +156,6 @@ def load_models():
     if not os.path.isfile(checkpoint_l):  
         download_file("https://zenodo.org/records/12626395/files/SV_lines?download=1", checkpoint_l)  
       
-    # Load the models  
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  
     # print(f"Using device: {device}")
       
     model = get_cls_net(cfg)  
@@ -170,8 +171,6 @@ def load_models():
     return model, model_l
 
 def run_demo(images, model, model_l):  
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # Preprocess all images and stack them into a batch
     tfms_resize = T.Compose([  

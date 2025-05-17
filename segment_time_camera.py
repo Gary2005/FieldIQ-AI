@@ -10,24 +10,34 @@ model, model_l = load_models()
 def process(frames, fps):
     images = [image for image, _ in frames]
     annotations = run_demo(images, model, model_l)
-    results = []
+    results = {}
     for i, (image, frame_idx) in enumerate(frames):
         annotation = annotations[i]
         if annotation is None:
             continue
         matrix, error = process_anno(annotation)
-        t = frame_idx / fps
-        result = {
-            "time": t,
-            "htime": f"{int(t // 60)}:{int(t % 60):02d}",
-            "frame": frame_idx,
-            "matrix": (matrix.tolist() if matrix is not None else None),
-            "error": error,
-        }
-        results.append(result)
+        t = int(frame_idx / fps)
+        if matrix is not None:
+            key = f"{t}({int(t // 60)}:{int(t % 60):02d})"
+            result = {
+                "frame": frame_idx,
+                "matrix": (matrix.tolist() if matrix is not None else None),
+                "error": error,
+                "annotation": annotation,
+            }
+            if key not in results:
+                results[key] = []
+            results[key].append(result)
     return results
 
-def process_time_segment(video_path, start_time, end_time):
+def merge_dict(dst, src):
+    for key, value in src.items():
+        if key not in dst:
+            dst[key] = []
+        dst[key].extend(value)
+    return dst
+
+def process_time_segment(video_path, start_time, end_time, num_frame_each_second = 5):
 
     batch_size = 10
 
@@ -49,7 +59,7 @@ def process_time_segment(video_path, start_time, end_time):
     video.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
     
     frames = []
-    results = []
+    results = {}
     
     # Read frames until we reach the end frame
 
@@ -61,20 +71,33 @@ def process_time_segment(video_path, start_time, end_time):
         if not ret or video.get(cv2.CAP_PROP_POS_FRAMES) > end_frame:
             break
         current_frame_number = int(video.get(cv2.CAP_PROP_POS_FRAMES))
+        t = int(current_frame_number / fps)
+        key = f"{t}({int(t // 60)}:{int(t % 60):02d})"
+        if key in results and len(results[key]) >= num_frame_each_second:
+            bar.update(1)
+            continue
+
         frames.append((frame, current_frame_number))
 
         if len(frames) == batch_size:
             batch_results = process(frames, fps)
-            results.extend(batch_results)
+            results = merge_dict(results, batch_results)
             frames = []
 
         bar.update(1)
 
     if len(frames) > 0:
         batch_results = process(frames, fps)
-        results.extend(batch_results)
+        results = merge_dict(results, batch_results)
     video.release()
     bar.close()
+
+    for key, value in results.items():
+        if len(value) > num_frame_each_second:
+            value.sort(key=lambda x: x["frame"])
+            results[key] = value[:num_frame_each_second]
+        else:
+            results[key] = value
 
     return results
     
