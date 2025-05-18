@@ -1,87 +1,86 @@
-import os
+from torch.utils.data import DataLoader
+import torch.optim as optim
+from dataset import SoccerDataset
+from model import SoccerTransformer
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import DataLoader, ConcatDataset
-from model import HomographyNet
-from dataset import SoccerDataset
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from tqdm import tqdm
 import wandb
 
-def train_epoch(model, dataloader, criterion, optimizer, device):
-    model.train()
+# ===============================
+# 配置超参数
+# ===============================
+config = {
+    "batch_size": 64,
+    "learning_rate": 1e-3,
+    "epochs": 10,
+    "d_model": 16,
+    "nhead": 4,
+    "num_layers": 2,
+    "max_len": 20
+}
 
-    bar = tqdm(dataloader, desc="Training", unit="batch")
+# ===============================
+# 初始化 wandb
+# ===============================
+wandb.init(project="soccer-transformer", name="training-run-1", config=config)
 
-    for images, targets in bar:
-        images = images.to(device)
-        targets = targets.to(device)
-        optimizer.zero_grad()
-        outputs = model(images)
-        loss = criterion(outputs, targets.view(outputs.size(0), -1))
-        loss.backward()
-        optimizer.step()
-        bar.set_postfix({"loss": loss.item()})
-        wandb.log({"train_loss": loss.item()})
-        print(f"train: {targets[0], outputs[0]}")
+def process_data(json_paths):
+    data = 
+    return data
 
-def evaluate(model, dataloader, criterion, device):
-    model.eval()
-    running_loss = 0.0
-    with torch.no_grad():
-        bar = tqdm(dataloader, desc="Evaluating", unit="batch")
-        for images, targets in bar:
-            images = images.to(device)
-            targets = targets.to(device)
-            outputs = model(images)
-            loss = criterion(outputs, targets.view(outputs.size(0), -1))
-            running_loss += loss.item() * images.size(0)
-            print(f"eval: {targets[0], outputs[0]}")
-    epoch_loss = running_loss / len(dataloader.dataset)
-    wandb.log({"test_loss": epoch_loss})
-    return epoch_loss
+# ===============================
+# 准备数据
+# ===============================
+json_paths = ["game_example/cleaned_data.json"]
+dataset = SoccerDataset(process_data(json_paths), mx_len=config["max_len"])
+dataloader = DataLoader(dataset, batch_size=config["batch_size"], shuffle=True)
 
-def main():
+# ===============================
+# 初始化模型和优化器
+# ===============================
+model = SoccerTransformer(
+    d_model=config["d_model"],
+    nhead=config["nhead"],
+    num_layers=config["num_layers"],
+    max_len=config["max_len"]
+)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 
-    wandb.init(
-        project="soccer_homography",
-        config={
-            "learning_rate": 1e-3,
-            "batch_size": 64,
-            "num_epochs": 20
-        }
-    )
+# 将模型参数和配置记录到 wandb
+wandb.watch(model, log="all")
 
-    # 超参数设置
-    num_epochs = 20
-    batch_size = 64
-    learning_rate = 1e-3
+# ===============================
+# 训练循环
+# ===============================
+for epoch in range(config["epochs"]):
+    epoch_loss = 0
+    with tqdm(dataloader, desc=f"Epoch {epoch + 1}", leave=False) as pbar:
+        for player_features, target in pbar:
+            optimizer.zero_grad()
+            output = model(player_features)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
 
-    # 加载数据集
-    train_ds = SoccerDataset("./", "train")
-    valid_ds = SoccerDataset("./", "valid")
-    # 合并 train 和 valid 数据集
-    train_valid_ds = ConcatDataset([train_ds, valid_ds])
-    test_ds = SoccerDataset("./", "test")
+            # 更新进度条和 loss 统计
+            pbar.set_postfix(loss=loss.item())
+            epoch_loss += loss.item()
+            
+            # 记录到 wandb
+            wandb.log({
+                "Batch Loss": loss.item(),
+                "Learning Rate": config["learning_rate"]
+            })
 
-    train_loader = DataLoader(train_valid_ds, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
-
-    # 创建模型、损失函数与优化器
-    model = HomographyNet().to(device)
-    criterion = nn.MSELoss()
-    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-
-    # 训练过程
-    for epoch in range(num_epochs):
-        train_epoch(model, train_loader, criterion, optimizer, device)
-        loss = evaluate(model, test_loader, criterion, device)
-        # save_checkpoint
-        torch.save(model.state_dict(), f"models/model_epoch_{epoch}_loss_{loss:.4f}.pth")
-
-
-if __name__ == "__main__":
-    main()
+    avg_loss = epoch_loss / len(dataloader)
+    print(f"Epoch {epoch + 1} Completed. Average Loss = {avg_loss:.4f}")
     
+    # 记录 epoch 结束时的平均 loss 到 wandb
+    wandb.log({"Epoch": epoch + 1, "Average Loss": avg_loss})
+
+# ===============================
+# 结束 wandb 记录
+# ===============================
+wandb.finish()

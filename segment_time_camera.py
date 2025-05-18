@@ -69,11 +69,11 @@ def process_time_segment(video_path, start_time, end_time, num_frame_each_second
 
     while True:
         ret, frame = video.read()
-        # to RGB
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         current_frame_number = int(video.get(cv2.CAP_PROP_POS_FRAMES)) - 1
         if not ret or current_frame_number > end_frame:
             break
+        # to RGB
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         t = int(current_frame_number / fps)
         key = f"{t}({int(t // 60)}:{int(t % 60):02d})"
         if key in results and len(results[key]) >= num_frame_each_second:

@@ -95,6 +95,14 @@ def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
     # 绘制摄像区域(Boundary)
     assert len(Boundary) == 4, "Boundary should have 4 points"
     Boundary = np.array(Boundary)
+
+    # Boundary 不能超过球场范围
+    Boundary[Boundary[:, 0] < -field_length / 2, 0] = -field_length / 2
+    Boundary[Boundary[:, 0] > field_length / 2, 0] = field_length / 2
+    Boundary[Boundary[:, 1] < -field_width / 2, 1] = -field_width / 2
+    Boundary[Boundary[:, 1] > field_width / 2, 1] = field_width / 2
+    
+
     ax.plot([Boundary[0][0], Boundary[1][0]], [Boundary[0][1], Boundary[1][1]], 'r--', lw=2)
     ax.plot([Boundary[2][0], Boundary[3][0]], [Boundary[2][1], Boundary[3][1]], 'r--', lw=2)
     ax.plot([Boundary[0][0], Boundary[2][0]], [Boundary[0][1], Boundary[2][1]], 'r--', lw=2)
