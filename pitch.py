@@ -9,7 +9,7 @@ def get_random_color(seed_value):
     random.seed(seed_value)
     return (random.random(), random.random(), random.random())
 
-def get_pitch(positions, running_direction):
+def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
     # 场地尺寸（米）
     field_length = 105
     field_width = 68
@@ -83,12 +83,12 @@ def get_pitch(positions, running_direction):
             text_x = field_length / 2 + 15
             alignment = 'left'
 
-        # # 3️⃣ 绘制名字
+        # # # 3️⃣ 绘制名字
         # ax.text(text_x, pos[1], player, fontsize=10, color=color,
         #         ha=alignment, va='center',
         #         bbox=dict(facecolor='white', edgecolor=color, boxstyle='round,pad=0.3'))
 
-        # # 4️⃣ 绘制连接线
+        # # # 4️⃣ 绘制连接线
         # line = lines.Line2D([pos[0], text_x], [pos[1], pos[1]], color=color, lw=0.8, linestyle='--')
         # ax.add_line(line)
 
@@ -144,7 +144,7 @@ def get_pitch(positions, running_direction):
         ax.add_patch(goal)
 
     # --- 保存图片 ---
-    filename = f'soccer_pitch.png'
+    filename = save_dir
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Saved visualization as: {filename}")
 

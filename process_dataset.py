@@ -399,7 +399,7 @@ def process_anno(annotations):
         H, error = calc_H(data, np.random.rand(9))
         if H is None:
             break
-        if error < 2:
+        if error < 0.5:
             break
         H = None
 
@@ -554,6 +554,3 @@ if __name__ == "__main__":
         #     result = process("valid", i)
         #     results[i] = result
         print(f"valid done, {sum(results)}/ {len(results)}")
-
-
-    

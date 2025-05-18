@@ -170,7 +170,7 @@ def load_models():
 
     return model, model_l
 
-def run_demo(images, model, model_l):  
+def run_demo(images, model, model_l, visualize=False):  
     
     # Preprocess all images and stack them into a batch
     tfms_resize = T.Compose([  
@@ -225,16 +225,53 @@ def run_demo(images, model, model_l):
         lines = kp_to_realworld(final_dict[0])
         annotations.append(lines)
 
+
+    if visualize:
+        # visualize the keypoints
+        vis_image = images[0].copy()
+        from PIL import ImageDraw
+        draw = ImageDraw.Draw(vis_image)
+
+        for annotation in annotations[0]:
+            # 计算图像坐标
+            x = annotation['x_image'] * vis_image.width
+            y = annotation['y_image'] * vis_image.height
+            # 绘制一个半径为5的圆圈
+            radius = 5
+            draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline='red', width=2)
+            # 绘制真实坐标文字
+            text = f"({annotation['x_world']:.2f}, {annotation['y_world']:.2f})"
+            draw.text((x + radius, y), text, fill='red')
+
+        plt.figure(figsize=(8,6))
+
+        # save the image
+        vis_image.save("kp.png")
+
     return annotations
 
 
 if __name__ == "__main__":
+
+
+    video_path = "game_example/1_720p.mkv"
+    frame_idxs = [379, 380]
+
+    # Load the image
+
+    # for frame_idx in frame_idxs:
+    #     import cv2
+    #     video = cv2.VideoCapture(video_path)
+    #     video.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+    #     ret, frame = video.read()
+    #     # save the image
+    #     cv2.imwrite(f"{frame_idx}.jpg", frame)
+
     paths = [
-        "calibration-2023/train/00000.jpg",
-        "calibration-2023/train/00001.jpg",
-        "calibration-2023/train/00002.jpg",
-        "calibration-2023/train/00003.jpg",
+        f"{frame_idx}.jpg" for frame_idx in frame_idxs
     ]
     images = [Image.open(path).convert("RGB") for path in paths]
-    annotations = run_demo(images)
-    print(annotations)
+    model, mdoel_l = load_models()
+    annotations = run_demo(images, model, mdoel_l, visualize=True)
+    for idx, annotation in enumerate(annotations):
+        print(f"Frame {frame_idxs[idx]}: {len(annotation)} keypoints detected.")

@@ -13,6 +13,7 @@ def process(frames, fps):
     results = {}
     for i, (image, frame_idx) in enumerate(frames):
         annotation = annotations[i]
+        # print(frame_idx, len(annotation))
         if annotation is None:
             continue
         matrix, error = process_anno(annotation)
@@ -68,9 +69,11 @@ def process_time_segment(video_path, start_time, end_time, num_frame_each_second
 
     while True:
         ret, frame = video.read()
-        if not ret or video.get(cv2.CAP_PROP_POS_FRAMES) > end_frame:
+        # to RGB
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        current_frame_number = int(video.get(cv2.CAP_PROP_POS_FRAMES)) - 1
+        if not ret or current_frame_number > end_frame:
             break
-        current_frame_number = int(video.get(cv2.CAP_PROP_POS_FRAMES))
         t = int(current_frame_number / fps)
         key = f"{t}({int(t // 60)}:{int(t % 60):02d})"
         if key in results and len(results[key]) >= num_frame_each_second:
@@ -92,14 +95,20 @@ def process_time_segment(video_path, start_time, end_time, num_frame_each_second
     video.release()
     bar.close()
 
+    new_results = {}
+
     for key, value in results.items():
         if len(value) > num_frame_each_second:
             value.sort(key=lambda x: x["frame"])
-            results[key] = value[:num_frame_each_second]
+            new_results[key] = value[:num_frame_each_second]
         else:
-            results[key] = value
+            new_results[key] = value
 
-    return results
+    # for key, value in new_results.items():
+    #     for i in range(len(value)):
+    #         print(f"key: {key}, len: {len(value)}, {value[i]['frame'], len(value[i]['annotation'])}")
+
+    return new_results
     
 if __name__ == "__main__":
     video_path = "test_video"
