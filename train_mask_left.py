@@ -16,7 +16,7 @@ import numpy as np
 # 配置超参数
 # ===============================
 config = {
-    "name": "see_all",
+    "name": "mask_one_left",
     "batch_size": 64,
     "learning_rate": 1e-4,
     "epochs": 100,
@@ -35,12 +35,29 @@ device = "cuda:7"
 
 # torch.autograd.set_detect_anomaly(True)
 
+def mask(info, mask_team):
+    players, target = info
+    can_mask_index = []
+    for i, player in enumerate(players):
+        if player["team_id"] == mask_team:
+            can_mask_index.append(i)
+    results = []
+    for i in can_mask_index:
+        temp_players = []
+        for j in range(len(players)):
+            if j == i:
+                continue
+            temp_players.append(players[j])
+        results.append((temp_players, target))
+    return results
+
 def process_data(json_paths):
     data = []
     for json_path in json_paths:
         with open(json_path, "r") as f:
             match_data = json.load(f)
-            data.extend(match_data)
+            for situation in match_data:
+                data.extend(mask(situation, mask_team=0))
 
     # shuffle 后选择 512 条数据作为测试集
     random.shuffle(data)
