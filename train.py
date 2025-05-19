@@ -23,7 +23,7 @@ config = {
     "d_model": 16,
     "nhead": 4,
     "num_layers": 2,
-    "max_len": 20,
+    "max_len": 23,
     "valid_step": 100,
     "visualize_sample": 8
 }
