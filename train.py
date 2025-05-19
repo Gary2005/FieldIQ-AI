@@ -131,12 +131,22 @@ for epoch in range(config["epochs"]):
                 torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
                 print(f"Model saved at checkpoints/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
                 # 如果checkpoints 存在>=3个文件，删除val_loss最大的文件
-                if len(os.listdir("checkpoints")) >= 3:
-                    files = os.listdir("checkpoints")
-                    files.sort(key=lambda x: float(x.split("_")[-1].split(".")[0]))
-                    for file in files[:-2]:
-                        os.remove(os.path.join("checkpoints", file))
-                        print(f"Removed {file}")
+                ckpt_files = [f for f in os.listdir("checkpoints") if f.endswith(".pth")]
+                if len(ckpt_files) > 3:
+                    # 解析文件名中的 val_loss
+                    losses = []
+                    for filename in ckpt_files:
+                        try:
+                            loss = float(filename.split("_loss_")[1].replace(".pth", ""))
+                            losses.append((loss, filename))
+                        except (IndexError, ValueError):
+                            continue
+
+                    # 找到最大的 loss 文件并删除
+                    if losses:
+                        max_loss_file = max(losses, key=lambda x: x[0])[1]
+                        os.remove(os.path.join("checkpoints", max_loss_file))
+                        print(f"Removed checkpoint: {max_loss_file}")
 
                 model.train()
             step += 1
