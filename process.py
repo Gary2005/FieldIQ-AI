@@ -236,6 +236,8 @@ if __name__ == "__main__":
         print(frame["frame"], frame["half"])
 
 
+    all_time_half = [(21475, "first")]
+
     # results = []
     
     # for ht, half in tqdm(all_time_half):

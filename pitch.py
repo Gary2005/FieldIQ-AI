@@ -156,13 +156,18 @@ def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Saved visualization as: {filename}")
 
-def get_pitch_from_pt(features):
+def get_pitch_from_pt(features, value=None):
     """
     根据输入特征绘制足球场
     :param features: Tensor of shape (mx_len, 5), 每一行包含 (x, y, vx, vy, team_id)
+    :param value: 可选参数，如果不是 None，则是一个 (mx_len, 1) 的 Tensor，写在每个球员头上的值
     :return: Matplotlib Figure 对象
     """
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as patches
+
     plt.close('all')
+    
     # 场地尺寸（米）
     field_length, field_width = 105, 68
 
@@ -236,12 +241,12 @@ def get_pitch_from_pt(features):
         ax.add_patch(goal)
 
     # === 3️⃣ 绘制球员位置和运动方向 ===
-    for player in features:
+    for idx, player in enumerate(features):
         x, y, vx, vy, team_id = player.tolist()
-        x*= field_length / 2
-        y*= field_width / 2
-        vx*=10
-        vy*=10
+        x *= field_length / 2
+        y *= field_width / 2
+        vx *= 10
+        vy *= 10
 
         # 跳过 padding (x, y) == (0, 0) 或 team_id 异常
         if (x == 0 and y == 0 and vx == 0 and vy == 0):
@@ -258,9 +263,11 @@ def get_pitch_from_pt(features):
         # 绘制运动方向箭头
         ax.arrow(x, y, vx * 3, vy * 3, head_width=1, head_length=1, fc=color, ec=color, lw=2)
 
+        # 如果有 value，则在头顶显示对应的值
+        if value is not None and idx < len(value):
+            ax.text(x, y + 2, f'{value[idx].item():.2f}', color='black', fontsize=8, ha='center', va='bottom')
+
     return fig
-
-
 
 if __name__ == "__main__":
     
