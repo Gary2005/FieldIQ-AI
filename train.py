@@ -10,6 +10,7 @@ import json
 import os
 import random
 from pitch import get_pitch_from_pt
+import numpy as np
 
 # ===============================
 # 配置超参数
@@ -30,6 +31,8 @@ device = "cuda:7"
 # ===============================
 # 初始化 wandb
 # ===============================
+
+# torch.autograd.set_detect_anomaly(True)
 
 def process_data(json_paths):
     data = []
@@ -59,12 +62,19 @@ wandb.init(project="soccer-transformer", name="training-run-1", config=config)
 # ===============================
 # 初始化模型和优化器
 # ===============================
+# def init_weights(m):
+#     if isinstance(m, nn.Linear) or isinstance(m, nn.Conv2d):
+#         nn.init.xavier_uniform_(m.weight)
+#         if m.bias is not None:
+#             nn.init.zeros_(m.bias)
+
 model = SoccerTransformer(
     d_model=config["d_model"],
     nhead=config["nhead"],
     num_layers=config["num_layers"],
     max_len=config["max_len"]
 ).to(device)
+# model.apply(init_weights)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
@@ -76,36 +86,43 @@ wandb.watch(model, log="all")
 # ===============================
 # 训练循环
 # ===============================
+table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+
 
 for epoch in range(config["epochs"]):
     epoch_loss = 0
     with tqdm(dataloader, desc=f"Epoch {epoch + 1}", leave=False) as pbar:
         step = 0
-        for player_features, target in pbar:
+        for player_features, target, mask in pbar:
             if step % config["valid_step"] == 0 or step == len(dataloader) - 1:
                 model.eval()
                 with torch.no_grad():
                     val_loss = 0
-                    table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+                    # table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
                     sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
                     
                     for idx in sampled_indices:
-                        val_features, val_target = test_dataset[idx]
+                        val_features, val_target, val_mask = test_dataset[idx]
                         val_features = val_features.to(device)
                         val_target = val_target.to(device)
-                        val_output = model(val_features.unsqueeze(0))
+                        val_mask = val_mask.to(device)
+                        # print(val_mask)
+                        # print(val_features)
+                        # print(val_target)
+                        val_output = model(val_features.unsqueeze(0), val_mask.unsqueeze(0))
                         image = get_pitch_from_pt(val_features)
                         table.add_data(epoch, step, val_target.item(), val_output[0].item(), wandb.Image(image))
 
                     wandb.log({"Validation Samples": table})
 
-                    for val_player_features, val_target in dataloader_test:
+                    for val_player_features, val_target, val_mask in dataloader_test:
                         val_player_features = val_player_features.to(device)
                         val_target = val_target.to(device)
-                        val_output = model(val_player_features)
+                        val_mask = val_mask.to(device)
+                        val_output = model(val_player_features, val_mask)
                         val_loss += criterion(val_output, val_target).item()
                     val_loss /= len(dataloader_test)
-                    wandb.log({"Validation Loss": val_loss})
+                    wandb.log({"Validation Loss": val_loss, "Log Validation Loss": np.log(val_loss)})
                 print(f"Validation Loss: {val_loss:.4f}")
 
                 # save the ckpoint
@@ -125,11 +142,15 @@ for epoch in range(config["epochs"]):
             step += 1
             player_features = player_features.to(device)
             target = target.to(device)
+            mask = mask.to(device)
             optimizer.zero_grad()
-            output = model(player_features)
+            # print(player_features.shape, target.shape, mask.shape)
+            output = model(player_features,mask)
             loss = criterion(output, target)
+            # torch.autograd.set_detect_anomaly(True)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            # torch.autograd.set_detect_anomaly(False)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
             optimizer.step()
 
             # 更新进度条和 loss 统计
@@ -139,6 +160,7 @@ for epoch in range(config["epochs"]):
             # 记录到 wandb
             wandb.log({
                 "Batch Loss": loss.item(),
+                "Log Batch Loss": np.log(loss.item()),
                 "Learning Rate": optimizer.param_groups[0]["lr"]
             })
 
@@ -147,7 +169,7 @@ for epoch in range(config["epochs"]):
     print(f"Epoch {epoch + 1} Completed. Average Loss = {avg_loss:.4f}")
     
     # 记录 epoch 结束时的平均 loss 到 wandb
-    wandb.log({"Epoch": epoch + 1, "Average Loss": avg_loss})
+    wandb.log({"Epoch": epoch + 1, "Average Loss": avg_loss, "Log Average Loss": np.log(avg_loss)})
 
 # ===============================
 # 结束 wandb 记录

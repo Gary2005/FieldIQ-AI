@@ -238,6 +238,10 @@ def get_pitch_from_pt(features):
     # === 3️⃣ 绘制球员位置和运动方向 ===
     for player in features:
         x, y, vx, vy, team_id = player.tolist()
+        x*= field_length / 2
+        y*= field_width / 2
+        vx*=10
+        vy*=10
 
         # 跳过 padding (x, y) == (0, 0) 或 team_id 异常
         if (x == 0 and y == 0 and vx == 0 and vy == 0):

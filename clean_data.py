@@ -188,6 +188,8 @@ for i in range(2):
         for k in range(j, min(j+slide_window_size, 50*60)):
             new_rewards[i][j] += rewards[i][k] / (ld**(k-j))
 
+new_rewards /= 20
+
 
 plot_and_save(new_rewards, "New Total Reward", "plot/new_total_reward.png")
 
