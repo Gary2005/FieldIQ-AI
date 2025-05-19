@@ -10,9 +10,9 @@ class SoccerDataset(Dataset):
               # team_id: 0 left, 1 right, -1 ball
               Example:
               [
-                    ({"x": 10, "y": 30, "vx": 0.5, "vy": -0.2, "team_id": 0},
+                    ([{"x": 10, "y": 30, "vx": 0.5, "vy": -0.2, "team_id": 0},
                     {"x": 50, "y": 20, "vx": 0.1, "vy": 0.3, "team_id": 1},
-                    ...,
+                    ...],
                     target=10
                     )
               ]
@@ -29,8 +29,10 @@ class SoccerDataset(Dataset):
         for player in players_info:
             player_tensor = torch.tensor([player["x"], player["y"], player["vx"], player["vy"], player["team_id"]], dtype=torch.float32)
             players_features.append(player_tensor)
-        
-        players_features = torch.stack(players_features)
+        if len(players_features) == 0:
+            players_features = torch.zeros((self.mx_len, 5), dtype=torch.float32)
+        else:
+            players_features = torch.stack(players_features)
         if len(players_features) > self.mx_len:
             players_features = players_features[:self.mx_len]
         elif len(players_features) < self.mx_len:

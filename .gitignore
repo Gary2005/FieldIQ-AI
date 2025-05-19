@@ -6,3 +6,5 @@ game_example
 models
 test_video
 __pycache__
+plot
+wandb

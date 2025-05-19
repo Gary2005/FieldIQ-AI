@@ -81,24 +81,25 @@ for data in frame_informations:
         if "ball" in item:
             ball_position_reward[index-1][seconds] = pos[0]/52.5
     
-    left_x = []
-    right_x = []
+    _x = []
+    _x = []
     for item, pos in data["positions"].items():
-        if "left" in item:
-            left_x.append(pos[0])
-        elif "right" in item:
-            right_x.append(pos[0])
+        if "left" in item or "right" in item:
+            _x.append(pos[0])
 
-    mean_left_x = np.mean(left_x) / 52.5
-    mean_right_x = np.mean(right_x) / 52.5
-
-    player_position_reward[index-1][seconds] = (mean_left_x + mean_right_x) / 2
+    if len(_x) == 0:
+        continue
+    player_position_reward[index-1][seconds] = np.mean(_x) / 52.5
 
 # we want position reward to be continuous
 def make_continuous(position_reward):
     """
     将离散的 position reward 变为连续值，使用相邻非零值的线性插值。
     """
+
+    if np.isnan(position_reward).any():
+        raise ValueError("position_reward 中存在 NaN 值")
+
     continuous_reward = np.zeros_like(position_reward)
     for i in range(position_reward.shape[0]):
         # 找到所有非零值的索引
@@ -116,16 +117,26 @@ def make_continuous(position_reward):
             valid_times,
             valid_values
         )
-    
+    # 检查是否有nan
+    if np.isnan(continuous_reward).any():
+        raise ValueError("continuous_reward 中存在 NaN 值")
     return continuous_reward
+
+print("###")
+
 ball_position_reward = make_continuous(ball_position_reward)
+print("##")
 player_position_reward = make_continuous(player_position_reward)
+
+print("---")
 
 
 alpha = 2
 beta = 2
 
 rewards = alpha * ball_position_reward + beta * player_position_reward + sparse_rewards
+print(sparse_rewards)
+print(rewards)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -155,7 +166,117 @@ def plot_and_save(data, title, filename):
     plt.close()
     print(f"{filename} saved.")
 
+import os
+
+if os.path.exists("plot"):
+    pass
+else:
+    os.makedirs("plot")
+
 plot_and_save(ball_position_reward, "Ball Position Reward", "plot/ball_position_reward.png")
 plot_and_save(player_position_reward, "Player Position Reward", "plot/player_position_reward.png")
 plot_and_save(sparse_rewards, "Sparse Rewards", "plot/sparse_rewards.png")
 plot_and_save(rewards, "Total Reward", "plot/total_reward.png")
+
+slide_window_size = 15
+ld = 1.2
+new_rewards = np.zeros((2, 50*60))
+
+
+for i in range(2):
+    for j in range(50*60):
+        for k in range(j, min(j+slide_window_size, 50*60)):
+            new_rewards[i][j] += rewards[i][k] / (ld**(k-j))
+
+
+plot_and_save(new_rewards, "New Total Reward", "plot/new_total_reward.png")
+
+query_idx = 14 * 60 + 29
+queyr_index = 1
+
+left = query_idx - 30
+right = query_idx + 30
+
+import matplotlib.ticker as ticker
+
+def format_seconds(x, _):
+    """格式化时间轴，秒数转为 MM:SS 格式"""
+    minutes = int(x // 60)
+    seconds = int(x % 60)
+    return f"{minutes:02d}:{seconds:02d}"
+
+def plot_windowed_reward(reward_data, left, right, index, title, filename):
+    """
+    绘制指定窗口范围内的奖励曲线并保存到文件。
+    
+    参数:
+    - reward_data: np.ndarray，奖励数据，形状为 (2, 时间步)。
+    - left: int，窗口的左边界（时间步，单位：秒）。
+    - right: int，窗口的右边界（时间步，单位：秒）。
+    - index: int，1 表示上半场，2 表示下半场。
+    - title: str，图像标题。
+    - filename: str，保存的文件名。
+    """
+    if index not in [1, 2]:
+        raise ValueError("index 必须是 1（上半场） 或 2（下半场）")
+    
+    if left < 0 or right > reward_data.shape[1]:
+        raise ValueError("时间窗口越界")
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(np.arange(left, right), reward_data[index - 1][left:right], color='purple')
+    plt.title(f"{title} - Half {index} ({left} to {right} seconds)")
+    plt.xlabel("Time (MM:SS)")
+    plt.ylabel("Reward")
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    # 设置横坐标格式为 MM:SS
+    ax = plt.gca()
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(format_seconds))
+
+    # 显示更密集的时间刻度
+    plt.xticks(np.arange(left, right, step=10))
+
+    plt.tight_layout()
+    plt.savefig(filename)
+    plt.close()
+    print(f"{filename} saved.")
+
+plot_windowed_reward(rewards, left, right, queyr_index, "Total Reward", "plot/total_reward_window.png")
+plot_windowed_reward(new_rewards, left, right, queyr_index, "New Total Reward", "plot/new_total_reward_window.png")
+
+
+cleaned_data = []
+
+for data in frame_informations:
+    text = data["time"]
+    index = 1 if data["half"] == "first" else 2
+
+    match = re.match(r"(\d+)\s*\((\d+):(\d+)\)", text)
+    if match:
+        seconds = int(match.group(1))
+    else:
+        raise ValueError("字符串格式不正确")
+    
+    target = rewards[index-1][seconds]
+    players_info = []
+    for item, pos in data["positions"].items():
+        if "ball" in item:
+            team_id = -1
+        elif "left" in item:
+            team_id = 0
+        elif "right" in item:
+            team_id = 1
+        else:
+            continue
+        players_info.append({
+            "x": pos[0],
+            "y": pos[1],
+            "vx": data["directions"][item][0],
+            "vy": data["directions"][item][1],
+            "team_id": team_id
+        })
+    cleaned_data.append((players_info, target))
+with open("game_example/cleaned_data.json", "w") as f:
+    json.dump(cleaned_data, f)
+print("cleaned_data.json saved.")

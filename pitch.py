@@ -156,5 +156,157 @@ def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Saved visualization as: {filename}")
 
+def get_pitch_from_pt(features):
+    """
+    根据输入特征绘制足球场
+    :param features: Tensor of shape (mx_len, 5), 每一行包含 (x, y, vx, vy, team_id)
+    :return: Matplotlib Figure 对象
+    """
+    # 场地尺寸（米）
+    field_length, field_width = 105, 68
+
+    # 区域和标志的尺寸
+    penalty_area_width, penalty_area_length = 40.32, 16.5
+    goal_area_width, goal_area_length = 18.32, 5.5
+    penalty_spot_distance = 11
+    penalty_arc_radius = 9.15
+    goal_width = 7.32
+    goal_post_depth = 0.12
+
+    # 颜色映射
+    color_map = {0: 'red', 1: 'blue', -1: 'yellow'}
+
+    # 创建画布
+    fig, ax = plt.subplots(figsize=(12, 8))
+    ax.set_xlim(-field_length / 2, field_length / 2)
+    ax.set_ylim(-field_width / 2, field_width / 2)
+    ax.set_aspect('equal')
+    ax.axis('off')
+
+    # === 1️⃣ 绘制球场外框、中心线、中心圆 ===
+    outer_rect = patches.Rectangle((-field_length / 2, -field_width / 2), field_length, field_width, 
+                                   fill=False, color='black', lw=2)
+    ax.add_patch(outer_rect)
+
+    # 中线
+    ax.plot([0, 0], [-field_width / 2, field_width / 2], color='black', lw=2)
+
+    # 中圈
+    center_circle = patches.Circle((0, 0), 9.15, fill=False, color='black', lw=2)
+    ax.add_patch(center_circle)
+
+    # 中点
+    ax.plot(0, 0, 'ko', markersize=2)
+
+    # === 2️⃣ 绘制左右两端的罚球区、小禁区、球门、罚球弧 ===
+    for side in [-1, 1]:  # -1代表左边，1代表右边
+        # 罚球区
+        penalty_area = patches.Rectangle(
+            (side * field_length / 2 - side * penalty_area_length, -penalty_area_width / 2),
+            penalty_area_length * side, penalty_area_width,
+            fill=False, color='black', lw=2)
+        ax.add_patch(penalty_area)
+
+        # 小禁区
+        goal_area = patches.Rectangle(
+            (side * field_length / 2 - side * goal_area_length, -goal_area_width / 2),
+            goal_area_length * side, goal_area_width,
+            fill=False, color='black', lw=2)
+        ax.add_patch(goal_area)
+
+        # 罚球点
+        penalty_spot = (side * field_length / 2 - side * penalty_spot_distance, 0)
+        ax.plot(*penalty_spot, 'ko', markersize=2)
+
+        # 罚球弧
+        arc = patches.Arc(
+            penalty_spot, width=2 * penalty_arc_radius, height=2 * penalty_arc_radius,
+            angle=0,
+            theta1=308 if side == -1 else 128,
+            theta2=52 if side == -1 else 232,
+            color='black', lw=2)
+        ax.add_patch(arc)
+
+        # 球门
+        goal = patches.Rectangle(
+            (side * field_length / 2, -goal_width / 2),
+            side * goal_post_depth, goal_width,
+            fill=False, color='black', lw=2)
+        ax.add_patch(goal)
+
+    # === 3️⃣ 绘制球员位置和运动方向 ===
+    for player in features:
+        x, y, vx, vy, team_id = player.tolist()
+
+        # 跳过 padding (x, y) == (0, 0) 或 team_id 异常
+        if (x == 0 and y == 0 and vx == 0 and vy == 0):
+            continue
+
+        assert int(team_id) in color_map, f"Invalid team_id: {team_id}"
+
+        # 设置颜色
+        color = color_map[int(team_id)]
+
+        # 绘制球员位置
+        ax.plot(x, y, 'o', color=color, markersize=8)
+
+        # 绘制运动方向箭头
+        ax.arrow(x, y, vx * 3, vy * 3, head_width=1, head_length=1, fc=color, ec=color, lw=2)
+
+    return fig
+
+
+
 if __name__ == "__main__":
-    pass
+    
+    from torch.utils.data import DataLoader
+    import torch.optim as optim
+    from dataset import SoccerDataset
+    from model import SoccerTransformer
+    import torch
+    import torch.nn as nn
+    from tqdm import tqdm
+    import wandb
+    import json
+    import os
+    import random
+
+    def process_data(json_paths):
+        data = []
+        for json_path in json_paths:
+            with open(json_path, "r") as f:
+                match_data = json.load(f)
+                data.extend(match_data)
+
+        # shuffle 后选择 512 条数据作为测试集
+        random.shuffle(data)
+        test_data = data[:512]
+        data = data[512:]
+
+        return data, test_data
+        
+    config = {
+        "batch_size": 64,
+        "learning_rate": 1e-3,
+        "epochs": 10,
+        "d_model": 16,
+        "nhead": 4,
+        "num_layers": 2,
+        "max_len": 20,
+        "valid_step": 100,
+    }
+
+    json_paths = ["game_example/cleaned_data.json"]
+    data, test_data = process_data(json_paths)
+    train_dataset = SoccerDataset(data, mx_len=config["max_len"])
+    test_dataset = SoccerDataset(test_data, mx_len=config["max_len"])
+    dataloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
+    dataloader_test = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False)
+
+    test_features, test_target = test_dataset[0]
+    # print(test_features.shape, test_target.shape)
+    # print(test_features)
+    # print(test_target)
+    image = get_pitch_from_pt(test_features)
+    # save the image 
+    image.savefig("test.png", dpi=300, bbox_inches='tight')

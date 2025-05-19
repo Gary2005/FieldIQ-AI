@@ -57,6 +57,10 @@ def process_frame_json():
         new_element["half"] = half
 
         # 检查optical_flows是否有NaN
+
+        if new_element["optical_flows"] is None:
+            continue
+
         has_nan = False
         for i in range(len(new_element["optical_flows"])):
             if np.isnan(new_element["optical_flows"][i][0]) or np.isnan(new_element["optical_flows"][i][1]):
