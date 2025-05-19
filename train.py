@@ -86,7 +86,7 @@ wandb.watch(model, log="all")
 # ===============================
 # 训练循环
 # ===============================
-table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+# table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
 
 
 for epoch in range(config["epochs"]):
@@ -98,7 +98,7 @@ for epoch in range(config["epochs"]):
                 model.eval()
                 with torch.no_grad():
                     val_loss = 0
-                    # table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+                    table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
                     sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
                     
                     for idx in sampled_indices:
@@ -113,7 +113,7 @@ for epoch in range(config["epochs"]):
                         image = get_pitch_from_pt(val_features)
                         table.add_data(epoch, step, val_target.item(), val_output[0].item(), wandb.Image(image))
 
-                    wandb.log({"Validation Samples": table})
+                    wandb.log({f"Samples_Epoch_{epoch}_Step_{step}": table})
 
                     for val_player_features, val_target, val_mask in dataloader_test:
                         val_player_features = val_player_features.to(device)
