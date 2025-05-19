@@ -17,6 +17,7 @@ class SoccerDataset(Dataset):
                     )
               ]
         """
+
         self.data = data
         self.mx_len = mx_len
 
@@ -39,5 +40,10 @@ class SoccerDataset(Dataset):
             padding = torch.zeros((self.mx_len - len(players_features), players_features.shape[1]), dtype=torch.float32)
             players_features = torch.cat((players_features, padding), dim=0)
         target_tensor = torch.tensor(target, dtype=torch.float32)
+        if torch.isnan(players_features).any() or torch.isinf(players_features).any():
+            raise ValueError(f"Invalid player features at index {idx}: {players_features}")
+        if torch.isnan(target_tensor).any() or torch.isinf(target_tensor).any():
+            raise ValueError(f"Invalid target at index {idx}: {target_tensor}")
+        
         return players_features, target_tensor
     

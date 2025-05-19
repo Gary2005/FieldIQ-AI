@@ -162,6 +162,7 @@ def get_pitch_from_pt(features):
     :param features: Tensor of shape (mx_len, 5), 每一行包含 (x, y, vx, vy, team_id)
     :return: Matplotlib Figure 对象
     """
+    plt.close('all')
     # 场地尺寸（米）
     field_length, field_width = 105, 68
 

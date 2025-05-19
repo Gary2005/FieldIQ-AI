@@ -16,8 +16,8 @@ from pitch import get_pitch_from_pt
 # ===============================
 config = {
     "batch_size": 64,
-    "learning_rate": 1e-3,
-    "epochs": 10,
+    "learning_rate": 1e-4,
+    "epochs": 30,
     "d_model": 16,
     "nhead": 4,
     "num_layers": 2,
@@ -25,6 +25,7 @@ config = {
     "valid_step": 100,
     "visualize_sample": 8
 }
+device = "cuda:7"
 
 # ===============================
 # 初始化 wandb
@@ -63,9 +64,11 @@ model = SoccerTransformer(
     nhead=config["nhead"],
     num_layers=config["num_layers"],
     max_len=config["max_len"]
-)
+).to(device)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
+
 
 # 将模型参数和配置记录到 wandb
 wandb.watch(model, log="all")
@@ -73,15 +76,60 @@ wandb.watch(model, log="all")
 # ===============================
 # 训练循环
 # ===============================
+
 for epoch in range(config["epochs"]):
     epoch_loss = 0
     with tqdm(dataloader, desc=f"Epoch {epoch + 1}", leave=False) as pbar:
         step = 0
         for player_features, target in pbar:
+            if step % config["valid_step"] == 0 or step == len(dataloader) - 1:
+                model.eval()
+                with torch.no_grad():
+                    val_loss = 0
+                    table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+                    sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
+                    
+                    for idx in sampled_indices:
+                        val_features, val_target = test_dataset[idx]
+                        val_features = val_features.to(device)
+                        val_target = val_target.to(device)
+                        val_output = model(val_features.unsqueeze(0))
+                        image = get_pitch_from_pt(val_features)
+                        table.add_data(epoch, step, val_target.item(), val_output[0].item(), wandb.Image(image))
+
+                    wandb.log({"Validation Samples": table})
+
+                    for val_player_features, val_target in dataloader_test:
+                        val_player_features = val_player_features.to(device)
+                        val_target = val_target.to(device)
+                        val_output = model(val_player_features)
+                        val_loss += criterion(val_output, val_target).item()
+                    val_loss /= len(dataloader_test)
+                    wandb.log({"Validation Loss": val_loss})
+                print(f"Validation Loss: {val_loss:.4f}")
+
+                # save the ckpoint
+                if not os.path.exists("checkpoints"):
+                    os.makedirs("checkpoints")
+                torch.save(model.state_dict(), f"checkpoints/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
+                print(f"Model saved at checkpoints/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
+                # 如果checkpoints 存在>=3个文件，删除val_loss最大的文件
+                if len(os.listdir("checkpoints")) >= 3:
+                    files = os.listdir("checkpoints")
+                    files.sort(key=lambda x: float(x.split("_")[-1].split(".")[0]))
+                    for file in files[:-2]:
+                        os.remove(os.path.join("checkpoints", file))
+                        print(f"Removed {file}")
+
+                model.train()
+            step += 1
+            player_features = player_features.to(device)
+            target = target.to(device)
             optimizer.zero_grad()
             output = model(player_features)
             loss = criterion(output, target)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
             # 更新进度条和 loss 统计
@@ -91,33 +139,11 @@ for epoch in range(config["epochs"]):
             # 记录到 wandb
             wandb.log({
                 "Batch Loss": loss.item(),
-                "Learning Rate": config["learning_rate"]
+                "Learning Rate": optimizer.param_groups[0]["lr"]
             })
-            if step % config["valid_step"] == 0 or step == len(dataloader) - 1:
-                model.eval()
-                with torch.no_grad():
-                    val_loss = 0
-                    table = wandb.Table(columns=["Step", "Target", "Prediction", "Visualization"])
-                    sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
-                    
-                    for idx in sampled_indices:
-                        val_features, val_target = test_dataset[idx]
-                        val_output = model(val_features.unsqueeze(0))
-                        image = get_pitch_from_pt(val_features)
-                        table.add_data(step, val_target.item(), val_output[0].item(), wandb.Image(image))
-
-                    wandb.log({"Validation Samples": table})
-
-                    for val_player_features, val_target in dataloader_test:
-                        val_output = model(val_player_features)
-                        val_loss += criterion(val_output, val_target).item()
-                    val_loss /= len(dataloader_test)
-                    wandb.log({"Validation Loss": val_loss})
-                print(f"Validation Loss: {val_loss:.4f}")
-                model.train()
-            step += 1
 
     avg_loss = epoch_loss / len(dataloader)
+    scheduler.step()
     print(f"Epoch {epoch + 1} Completed. Average Loss = {avg_loss:.4f}")
     
     # 记录 epoch 结束时的平均 loss 到 wandb

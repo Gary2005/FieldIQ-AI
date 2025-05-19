@@ -258,7 +258,7 @@ for data in frame_informations:
     else:
         raise ValueError("字符串格式不正确")
     
-    target = rewards[index-1][seconds]
+    target = new_rewards[index-1][seconds]
     players_info = []
     for item, pos in data["positions"].items():
         if "ball" in item:

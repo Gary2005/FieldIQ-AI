@@ -8,3 +8,4 @@ test_video
 __pycache__
 plot
 wandb
+checkpoints
