@@ -11,7 +11,7 @@ import os
 import random
 from pitch import get_pitch_from_pt
 import numpy as np
-json_paths = ["2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/cleaned_data.json", "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa/cleaned_data.json", "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom"]
+json_paths = ["2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/cleaned_data.json", "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa/cleaned_data.json", "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom/cleaned_data.json"]
 
 # ===============================
 # 配置超参数

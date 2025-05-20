@@ -321,7 +321,7 @@ new_rewards /= 32
 
 plot_and_save(new_rewards, "New Total Reward", "plot/new_total_reward.png")
 
-query_idx = 1500
+query_idx = 32*60
 queyr_index = 1
 
 left = query_idx - 30
