@@ -1,9 +1,10 @@
 import json
 
-path = "game_example"
+path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United"
 
 label_path = f"{path}/Labels-v2.json"
 data_path = f"{path}/data.json"
+ignore_threshold = 1
 
 labels = json.load(open(label_path, "r"))
 frame_informations = json.load(open(data_path, "r"))
@@ -33,6 +34,11 @@ for element in frame_informations:
             right_position[index] = value
             right_direction[index] = element["directions"][key]
         elif role == "ball":
+
+            if abs(value[0]) > 52.5 + ignore_threshold or abs(value[1]) > 34 + ignore_threshold:
+                # seen as out of field
+                continue
+
             ball_position[index] = value
             ball_direction[index] = element["directions"][key]
     
@@ -50,11 +56,17 @@ for element in frame_informations:
         if value[1] < -34:
             # seen as substituted
             continue
+        if abs(value[0]) > 52.5 + ignore_threshold or abs(value[1]) > 34 + ignore_threshold:
+            # seen as out of field
+            continue
         new_element["positions"][f"left-{index}"] = value
         new_element["directions"][f"left-{index}"] = left_direction[index]
     for index, value in right_position.items():
         if value[1] < -34:
             # seen as substituted
+            continue
+        if abs(value[0]) > 52.5 + ignore_threshold or abs(value[1]) > 34 + ignore_threshold:
+            # seen as out of field
             continue
         new_element["positions"][f"right-{index}"] = value
         new_element["directions"][f"right-{index}"] = right_direction[index]

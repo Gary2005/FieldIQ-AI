@@ -261,7 +261,7 @@ def get_pitch_from_pt(features, value=None):
         ax.plot(x, y, 'o', color=color, markersize=8)
 
         # 绘制运动方向箭头
-        ax.arrow(x, y, vx * 3, vy * 3, head_width=1, head_length=1, fc=color, ec=color, lw=2)
+        # ax.arrow(x, y, vx * 3, vy * 3, head_width=1, head_length=1, fc=color, ec=color, lw=2)
 
         # 如果有 value，则在头顶显示对应的值
         if value is not None and idx < len(value):

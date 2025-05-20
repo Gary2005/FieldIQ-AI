@@ -15,7 +15,7 @@ class SoccerTransformer(nn.Module):
     def __init__(self, d_model=16, nhead=4, num_layers=2, max_len=20):
         super(SoccerTransformer, self).__init__()
         
-        self.input_proj = nn.Linear(5, d_model) 
+        self.input_proj = nn.Linear(3, d_model) 
         
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True),
@@ -29,6 +29,10 @@ class SoccerTransformer(nn.Module):
         """
         player_features: [batch_size, max_len, 5]
         """
+
+        # only keep the 0,1,4 features(ignore vx, vy)
+        player_features = player_features[:, :, [0, 1, 4]]
+
         x = self.input_proj(player_features)  # [batch_size, max_len, d_model]
         x = self.transformer_encoder(x, src_key_padding_mask=mask)  # [batch_size, max_len, d_model]
         x = x.permute(0, 2, 1)  # [batch_size, d_model, max_len]
