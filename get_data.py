@@ -1,4 +1,4 @@
-path = "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa"
+path = "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom"
 label_path = f"{path}/Labels-v2.json"
 frame_informati_path = f"{path}/output.json"
 first_half_video_path = f"{path}/1_720p.mkv"
@@ -56,17 +56,17 @@ def process_frame_json():
         new_element = element.copy()
         new_element["half"] = half
 
-        # 检查optical_flows是否有NaN
-        has_nan = False
-        if new_element["optical_flows"] is None:
-            has_nan = True
-        else:
-            for i in range(len(new_element["optical_flows"])):
-                if np.isnan(new_element["optical_flows"][i][0]) or np.isnan(new_element["optical_flows"][i][1]):
-                    has_nan = True
-                    break
-        if has_nan:
-            continue
+        # # 检查optical_flows是否有NaN
+        # has_nan = False
+        # if new_element["optical_flows"] is None:
+        #     has_nan = True
+        # else:
+        #     for i in range(len(new_element["optical_flows"])):
+        #         if np.isnan(new_element["optical_flows"][i][0]) or np.isnan(new_element["optical_flows"][i][1]):
+        #             has_nan = True
+        #             break
+        # if has_nan:
+        #     continue
         
         if new_element["error"] > 0.5:
             continue
@@ -128,7 +128,7 @@ def visulize_one_frame(frame_idx, half, frame_info):
     directions = []
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
-        flow_x, flow_y = info["optical_flows"][i]
+        flow_x, flow_y = (1,1)
         pos, dir = get_position_and_direction((x,y,w,h), (flow_x, flow_y), H, frame.shape[1], frame.shape[0])
         positions.append(pos)
         directions.append(dir)

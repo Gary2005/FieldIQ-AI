@@ -1,6 +1,6 @@
 import json
 
-path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United"
+path = "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom"
 
 label_path = f"{path}/Labels-v2.json"
 data_path = f"{path}/data.json"

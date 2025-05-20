@@ -156,11 +156,12 @@ def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     print(f"Saved visualization as: {filename}")
 
-def get_pitch_from_pt(features, value=None):
+def get_pitch_from_pt(features, value=None, best_position = None):
     """
     根据输入特征绘制足球场
     :param features: Tensor of shape (mx_len, 5), 每一行包含 (x, y, vx, vy, team_id)
     :param value: 可选参数，如果不是 None，则是一个 (mx_len, 1) 的 Tensor，写在每个球员头上的值
+    :param best_position: 可选参数，表示最佳位置的坐标, 是一个(mx_len, 2)的 Tensor
     :return: Matplotlib Figure 对象
     """
     import matplotlib.pyplot as plt
@@ -268,6 +269,22 @@ def get_pitch_from_pt(features, value=None):
 
         score = value[idx].item()
         valid_players.append((idx, x_field, y_field, int(team_id), score))
+    
+    if best_position is not None:
+        for (idx, x, y, team_id, score) in valid_players:
+            if idx >= best_position.shape[0]:
+                continue
+            best_x, best_y = best_position[idx].tolist()
+            best_x_field = x + best_x * field_length / 2
+            best_y_field = y + best_y * field_width / 2
+            color = color_map[team_id]
+            ax.annotate("",
+                        xy=(best_x_field, best_y_field),
+                        xytext=(x, y),
+                        arrowprops=dict(arrowstyle='->',
+                                        linestyle='dashed',
+                                        color=color,
+                                        lw=1.5))
 
     # 按分数排序（高到低）
     valid_players.sort(key=lambda x: -x[4])

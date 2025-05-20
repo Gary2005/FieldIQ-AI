@@ -11,21 +11,22 @@ import os
 import random
 from pitch import get_pitch_from_pt
 import numpy as np
-json_paths = ["2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/cleaned_data.json", "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa/cleaned_data.json"]
+json_paths = ["2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/cleaned_data.json", "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa/cleaned_data.json", "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom"]
 # ===============================
 # 配置超参数
 # ===============================
 config = {
     "name": "mask_one_right",
-    "batch_size": 64,
-    "learning_rate": 1e-4,
-    "epochs": 100,
-    "d_model": 16,
-    "nhead": 4,
-    "num_layers": 2,
+    "batch_size": 128,
+    "learning_rate": 1e-5,
+    "epochs": 30,
+    "d_model": 64,
+    "nhead": 8,
+    "num_layers": 4,
     "max_len": 23,
     "valid_step": 100,
-    "visualize_sample": 8
+    "visualize_sample": 8,
+    "weight_decay": 1e-4,
 }
 device = "cuda:7"
 
@@ -96,7 +97,7 @@ model = SoccerTransformer(
 ).to(device)
 # model.apply(init_weights)
 criterion = nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+optimizer = optim.AdamW(model.parameters(), lr=config["learning_rate"], weight_decay=config["weight_decay"])
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 
@@ -118,22 +119,22 @@ for epoch in range(config["epochs"]):
                 model.eval()
                 with torch.no_grad():
                     val_loss = 0
-                    table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
-                    sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
+                    # table = wandb.Table(columns=["Epoch", "Step", "Target", "Prediction", "Visualization"])
+                    # sampled_indices = random.sample(range(len(test_dataset)), min(config["visualize_sample"], len(test_dataset)))
                     
-                    for idx in sampled_indices:
-                        val_features, val_target, val_mask = test_dataset[idx]
-                        val_features = val_features.to(device)
-                        val_target = val_target.to(device)
-                        val_mask = val_mask.to(device)
-                        # print(val_mask)
-                        # print(val_features)
-                        # print(val_target)
-                        val_output = model(val_features.unsqueeze(0), val_mask.unsqueeze(0))
-                        image = get_pitch_from_pt(val_features)
-                        table.add_data(epoch, step, val_target.item(), val_output[0].item(), wandb.Image(image))
+                    # for idx in sampled_indices:
+                    #     val_features, val_target, val_mask = test_dataset[idx]
+                    #     val_features = val_features.to(device)
+                    #     val_target = val_target.to(device)
+                    #     val_mask = val_mask.to(device)
+                    #     # print(val_mask)
+                    #     # print(val_features)
+                    #     # print(val_target)
+                    #     val_output = model(val_features.unsqueeze(0), val_mask.unsqueeze(0))
+                    #     image = get_pitch_from_pt(val_features)
+                    #     table.add_data(epoch, step, val_target.item(), val_output[0].item(), wandb.Image(image))
 
-                    wandb.log({f"Samples_Epoch_{epoch}_Step_{step}": table})
+                    # wandb.log({f"Samples_Epoch_{epoch}_Step_{step}": table})
 
                     for val_player_features, val_target, val_mask in dataloader_test:
                         val_player_features = val_player_features.to(device)
@@ -148,7 +149,10 @@ for epoch in range(config["epochs"]):
                 # save the ckpoint
                 if not os.path.exists(f"checkpoints/{config['name']}"):
                     os.makedirs(f"checkpoints/{config['name']}")
+                if not os.path.exists(f"checkpoints/{config['name']}/latest"):
+                    os.makedirs(f"checkpoints/{config['name']}/latest")
                 torch.save(model.state_dict(), f"checkpoints/{config['name']}/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
+                torch.save(model.state_dict(), f"checkpoints/{config['name']}/latest/model_latest.pth")
                 print(f"Model saved at checkpoints/{config['name']}/model_epoch_{epoch + 1}_step_{step}_loss_{val_loss:.4f}.pth")
                 # 如果checkpoints/{config['name']} 存在>=3个文件，删除val_loss最大的文件
                 ckpt_files = [f for f in os.listdir(f"checkpoints/{config['name']}") if f.endswith(".pth")]

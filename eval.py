@@ -18,9 +18,9 @@ import cv2
 # ===============================
 
 
-pth_see_all = "checkpoints/see_all/model_epoch_23_step_400_loss_0.1820.pth"
-pth_mask_right = "checkpoints/mask_one_right/model_epoch_5_step_2300_loss_0.2026.pth"
-pth_mask_left = "checkpoints/mask_one_left/model_epoch_5_step_1800_loss_0.1625.pth"
+pth_see_all = "checkpoints/see_all/model_epoch_1_step_1600_loss_0.1740.pth"
+pth_mask_right = "checkpoints/mask_one_right/model_epoch_1_step_9100_loss_0.1739.pth"
+pth_mask_left = "checkpoints/mask_one_left/model_epoch_1_step_6900_loss_0.1449.pth"
 output_path = "plot"
 video_path_first = "game_example/1_720p.mkv"
 video_path_second = "game_example/2_720p.mkv"
@@ -123,8 +123,8 @@ if __name__ == "__main__":
     model_mask_right.eval()
 
     # player_feature, target, mask = sample_data(21475, "first")
-    # dict_ = sample_data(9300, "first")
-    dict_ = [
+    # dict_ = sample_data(23600, "first")
+    dict_ =[
 {'x': 22, 'y': -12, 'vx': 0, 'vy': 0, 'team_id': 0},
 {'x': 22, 'y': -22, 'vx': 0, 'vy': 0, 'team_id': 1},
 {'x': 36, 'y': -22, 'vx': 0, 'vy': 0, 'team_id': 1},
@@ -138,6 +138,7 @@ if __name__ == "__main__":
 {'x': 36, 'y': 0, 'vx': 0, 'vy': 0, 'team_id': 0},
 {'x': 37, 'y': 1, 'vx': 0, 'vy': 0, 'team_id': 1},
 ]
+
     print("[")
     for item in dict_:
         print(f"{{'x': {item['x']}, 'y': {item['y']}, 'vx': {item['vx']}, 'vy': {item['vy']}, 'team_id': {item['team_id']}}},")
@@ -149,13 +150,15 @@ if __name__ == "__main__":
     print(f"target: {target}")
     print(f"mask: {mask}")
     with torch.no_grad():
-        predict = model_see_all(torch.tensor(player_feature).unsqueeze(0).to(device), mask=mask.unsqueeze(0).to(device))[0].item()
+        predict = model_see_all(player_feature.unsqueeze(0).to(device), mask=mask.unsqueeze(0).to(device))[0].item()
     target = target.item()
     print(f"predict: {predict}, target: {target}")
 
     values = torch.zeros((len(player_feature)))
     
     for i in range(len(values)):
+        if i< len(dict_):
+            values[i] = dict_[i]["x"]
         if i< len(dict_):
 
             if dict_[i]["team_id"] == -1:   
@@ -164,25 +167,71 @@ if __name__ == "__main__":
 
             assert mask[i] == 0
 
-            new_mask = mask.clone()
+            new_mask = mask.clone().detach()
 
             model = model_mask_left if dict_[i]["team_id"] == 0 else model_mask_right
             new_mask[i] = 1
             with torch.no_grad():
-                predict2 = model(torch.tensor(player_feature).unsqueeze(0).to(device), mask=new_mask.unsqueeze(0).to(device))[0].item()
+                predict2 = model(player_feature.unsqueeze(0).to(device), mask=new_mask.unsqueeze(0).to(device))[0].item()
 
-            values[i] = predict - predict2
+            values[i] = predict2
             if dict_[i]["team_id"] == 1:
                 values[i] = -values[i]
         else:
             assert mask[i] == 1
             values[i] = 1000
-        # if i< len(dict_):
-        #     values[i] = dict_[i]["x"]
+
+    values_0 = [values[i] for i in range(len(dict_)) if dict_[i]["team_id"] == 0]
+    values_1 = [values[i] for i in range(len(dict_)) if dict_[i]["team_id"] == 1]
+    values_0 = np.mean(values_0)
+    values_1 = np.mean(values_1)
+    for i in range(len(values)):
+        if values[i] != 1000:
+            if dict_[i]["team_id"] == 0:
+                values[i] = np.mean(values_0) - values[i]
+            else:
+                assert dict_[i]["team_id"] == 1
+                values[i] = np.mean(values_1) - values[i]
 
     print(values)
 
-    img = get_pitch_from_pt(player_feature, values)
+    best_position = []
+    for i in range(len(values)):
+        if i< len(dict_):
+            if dict_[i]["team_id"] == -1:
+                best_position.append([0, 0])
+                continue
+            best_value = -1e18
+            flag = 1
+            if dict_[i]["team_id"] == 1:
+                flag = -1
+
+            dx_ = None
+            dy_ = None
+            for d_x in range(-2, 3):
+                for d_y in range(-2, 3):
+                    dx =d_x/( 105/2)
+                    dy=d_y/( 68/2)
+                    temp_player_feature = player_feature.clone().detach()
+                    temp_player_feature[i][0] += dx
+                    temp_player_feature[i][1] += dy
+                    temp_predict = model_see_all(temp_player_feature.unsqueeze(0).to(device), mask=mask.unsqueeze(0).to(device))[0].item()
+                    if temp_predict * flag > best_value:
+                        best_value = temp_predict * flag
+                        dx_ = dx
+                        dy_ = dy
+            print(f"best_value: {best_value}, dx: {dx_ * (105/2)}, dy: {dy_ * (68/2)}")
+            best_position.append([dx_, dy_])
+            # values[i] = predict * flag - best_value
+                    
+        else:
+            best_position.append([0, 0])
+    best_position = np.array(best_position)
+
+    print(values)
+
+
+    img = get_pitch_from_pt(player_feature, values, None)
 
     # save the image to output_path
     if not os.path.exists(output_path):

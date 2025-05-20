@@ -12,10 +12,10 @@ class MaskedAvgPooling(nn.Module):
         return x.sum(dim=-1) / valid_counts
 
 class SoccerTransformer(nn.Module):
-    def __init__(self, d_model=16, nhead=4, num_layers=2, max_len=20):
+    def __init__(self, d_model=36, nhead=6, num_layers=4, max_len=20):
         super(SoccerTransformer, self).__init__()
         
-        self.input_proj = nn.Linear(3, d_model) 
+        self.input_proj = nn.Linear(3, d_model)
         
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True),
