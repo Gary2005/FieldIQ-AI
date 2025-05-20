@@ -1,4 +1,4 @@
-path = "game_example"
+path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United"
 label_path = f"{path}/Labels-v2.json"
 frame_informati_path = f"{path}/output.json"
 first_half_video_path = f"{path}/1_720p.mkv"
@@ -104,17 +104,17 @@ def visulize_one_frame(frame_idx, half, frame_info):
         return
     
     # draw the bboxes and optical flow
-    for i in range(len(info["bboxes_ltwh"])):
-        x,y,w,h = info["bboxes_ltwh"][i]
-        categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
-        team = info["team_detections"][i]
-        flow_x, flow_y = info["optical_flows"][i]
-        flow_x *= 50
-        flow_y *= 50
-        cv2.rectangle(frame, (int(x), int(y)), (int(x+w), int(y+h)), (0, 255, 0), 2)
-        cv2.putText(frame, f"{categories} {role_detections} {team}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv2.arrowedLine(frame, (int(x+w/2), int(y+h/2)), (int(x+w/2+flow_x), int(y+h/2+flow_y)), (255, 0, 0), 1)
+    # for i in range(len(info["bboxes_ltwh"])):
+    #     x,y,w,h = info["bboxes_ltwh"][i]
+    #     categories = info["categories"][i]
+    #     role_detections = info["role_detections"][i]
+    #     team = info["team_detections"][i]
+    #     flow_x, flow_y = info["optical_flows"][i]
+    #     flow_x *= 50
+    #     flow_y *= 50
+    #     cv2.rectangle(frame, (int(x), int(y)), (int(x+w), int(y+h)), (0, 255, 0), 2)
+    #     cv2.putText(frame, f"{categories} {role_detections} {team}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    #     cv2.arrowedLine(frame, (int(x+w/2), int(y+h/2)), (int(x+w/2+flow_x), int(y+h/2+flow_y)), (255, 0, 0), 1)
         
     # save to f"{path}/output/{ht}_{half}.jpg"
     # if not os.path.exists(f"{path}/output/{frame_idx}-{half}"):
@@ -138,14 +138,14 @@ def visulize_one_frame(frame_idx, half, frame_info):
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
         categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
-        team = info["team_detections"][i]
+        # role_detections = info["role_detections"][i]
+        # team = info["team_detections"][i]
         pos = positions[i]
         dir = directions[i]
-        positions_dict[f"{categories}-{team}-{i}"] = pos
-        directions_dict[f"{categories}-{team}-{i}"] = dir
+        positions_dict[f"{categories}-{i}"] = pos
+        directions_dict[f"{categories}-{i}"] = dir
     
-    return {"time": info["time"], "half": half, "frame": frame_idx, "positions": positions_dict, "directions": directions_dict}
+    return {"time": info["time"], "half": half, "frame": frame_idx, "positions": positions_dict, "directions": directions_dict, "bbox_confs": info["bbox_confs"]}
 
 
 if __name__ == "__main__":

@@ -1,5 +1,24 @@
 import cv2
 import numpy as np
+from getH import calc_H, project_point
+
+def solve_H(lines_points, velocity, shape1, shape0):
+    data = []
+    for i, point in enumerate(lines_points):
+        data.append({
+            'x_image': point[0]/shape1,
+            'y_image': point[1]/shape0,
+            'x_world': velocity[i][0],
+            'y_world': velocity[i][1]
+        })
+    for try_ in range(2):
+        H, error = calc_H(data, np.random.rand(9))
+        if H is None:
+            break
+        if error < 1:
+            break
+        H = None
+    return H
 
 def get_optical_flow(previous_frame, current_frame, bbox, lines_points):
     '''
@@ -12,52 +31,58 @@ def get_optical_flow(previous_frame, current_frame, bbox, lines_points):
     flow = cv2.calcOpticalFlowFarneback(previous_gray, current_gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
     # Calculate the average flow for each bounding box
 
-    avg_flow_of_lines = []
+    shape0, shape1 = previous_frame.shape[:2]
+
+    flow_of_lines = []
     for point in lines_points:
         x, y = point
+        x = int(x)
+        y = int(y)
         roi = flow[y-5:y+5, x-5:x+5]
         avg_flow = np.mean(roi, axis=(0, 1))
-        # print("avg_flow: ", avg_flow)
-        avg_flow_of_lines.append(avg_flow)
-    avg_flow_of_lines = np.mean(avg_flow_of_lines, axis=0)
-    # print("avg_flow_of_lines: ", avg_flow_of_lines)
+        print("avg_flow: ", avg_flow)
+        print(point, avg_flow)
+        flow_of_lines.append(avg_flow)
+    H = solve_H(lines_points, flow_of_lines, shape1, shape0)
+    if H is None:
+        return None
 
     flows = []
+    print("H: ", H)
+    print(project_point(H, (0.8395833333333333, 0.22592592592592592)))
     for box in bbox:
         x, y, w, h = box
+        x = int(x)
+        y = int(y)
+        w = int(w)
+        h = int(h)
         roi = flow[y:y+h, x:x+w]
         avg_flow = np.mean(roi, axis=(0, 1))
-        flows.append(avg_flow - avg_flow_of_lines)
+        print(avg_flow, project_point(H, ((x + w // 2)/shape1, (y + h // 2)/shape0)), ((x + w // 2)/shape1, (y + h // 2)/shape0))
+        flows.append(avg_flow - project_point(H, ((x + w // 2)/shape1, (y + h // 2)/shape0)))
 
     return flows
 
 if __name__ == "__main__":
-    frame_idx = 25*8
-    video_path = "test_video/1_720p.mkv"
+    frame_idx = 29003 - 1
+    video_path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/1_720p.mkv"
     cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
     ret, previous_frame = cap.read()
-    if not ret:
-        print("Error reading frame")
-        exit(1)
     ret, current_frame = cap.read()
-    if not ret:
-        print("Error reading frame")
-        exit(1)
-
+    
     # visualize previous_frame and current_frame
     # save to "test_video/previous_frame.jpg" and "test_video/current_frame.jpg"
 
-    detected = [{'x_image': 0.29791666666666666, 'y_image': 0.18888888888888888, 'x_world': -52.5, 'y_world': 34.0, 'z_world': 0.0}, {'x_image': 0.19583333333333333, 'y_image': 0.22592592592592592, 'x_world': -52.5, 'y_world': 20.16, 'z_world': 0.0}, {'x_image': 0.41041666666666665, 'y_image': 0.24074074074074073, 'x_world': -36.0, 'y_world': 20.16, 'z_world': 0.0}, {'x_image': 0.0875, 'y_image': 0.26296296296296295, 'x_world': -52.5, 'y_world': 9.16, 'z_world': 0.0}, {'x_image': 0.1625, 'y_image': 0.27037037037037037, 'x_world': -47.0, 'y_world': 9.16, 'z_world': 0.0}, {'x_image': 0.3104166666666667, 'y_image': 0.2962962962962963, 'x_world': -36.0, 'y_world': 7.32, 'z_world': 0.0}, {'x_image': 0.14791666666666667, 'y_image': 0.3814814814814815, 'x_world': -36.0, 'y_world': -7.310000000000002, 'z_world': 0.0}, {'x_image': 0.3145833333333333, 'y_image': 0.3333333333333333, 'x_world': -32.510000000000005, 'y_world': 1.7100000000000009, 'z_world': 0.0}, {'x_image': 0.7708333333333334, 'y_image': 0.3814814814814815, 'x_world': -8.82, 'y_world': 2.469999999999999, 'z_world': 0.0}, {'x_image': 0.7520833333333333, 'y_image': 0.4222222222222222, 'x_world': -8.82, 'y_world': -2.460000000000001, 'z_world': 0.0}, {'x_image': 0.14375, 'y_image': 0.32222222222222224, 'x_world': -41.5, 'y_world': -0.0, 'z_world': 0.0}, {'x_image': 0.23541666666666666, 'y_image': 0.337037037037037, 'x_world': -36.0, 'y_world': -0.0, 'z_world': 0.0}, {'x_image': 0.29791666666666666, 'y_image': 0.34444444444444444, 'x_world': -32.35, 'y_world': -0.0, 'z_world': 0.0}, {'x_image': 0.8375, 'y_image': 0.3592592592592593, 'x_world': -6.469999999999999, 'y_world': 6.469999999999999, 'z_world': 0.0}, {'x_image': 0.75625, 'y_image': 0.3962962962962963, 'x_world': -9.149999999999999, 'y_world': -0.0, 'z_world': 0.0}, {'x_image': 0.7979166666666667, 'y_image': 0.4703703703703704, 'x_world': -6.469999999999999, 'y_world': -6.469999999999999, 'z_world': 0.0}]
-    vis_pts = [(0.3,0.3), (0.5,0.9), (0.9,0.5)]
+    from get_annotation import load_models
+    from get_annotation import run_demo
+    model, model_l = load_models()
+    annotations = run_demo([current_frame], model, model_l)[0]
 
     special_points = []
-    for dic in detected:
-        if dic['z_world'] != 0:
-            continue
-        x = dic['x_image']
-        y = dic['y_image']
-        special_points.append((int(x * previous_frame.shape[1]), int(y * previous_frame.shape[0])))
+    for element in annotations:
+        special_points.append((element['x_image'] * current_frame.shape[1], element['y_image'] * current_frame.shape[0]))
+
 
     cv2.imwrite("test_video/previous_frame.jpg", previous_frame)
     cv2.imwrite("test_video/current_frame.jpg", current_frame)
@@ -66,22 +91,101 @@ if __name__ == "__main__":
     h = previous_frame.shape[0]
 
     bbox = [
-        [0.39 ,0.42, 0.02, 0.1],
-        [0.33 ,0.55, 0.03, 0.13],
-        [0.11 ,0.7, 0.03, 0.14],
-    ]
+                [
+                    88.88481140136719,
+                    325.72845458984375,
+                    33.8018798828125,
+                    76.56097412109375
+                ],
+                [
+                    311.1767578125,
+                    475.4122314453125,
+                    42.875244140625,
+                    98.8050537109375
+                ],
+                [
+                    476.85906982421875,
+                    341.86688232421875,
+                    48.4859619140625,
+                    80.298828125
+                ],
+                [
+                    459.956298828125,
+                    240.452880859375,
+                    31.91925048828125,
+                    57.975830078125
+                ],
+                [
+                    547.2772216796875,
+                    364.2423095703125,
+                    42.60595703125,
+                    83.26214599609375
+                ],
+                [
+                    818.30859375,
+                    201.83514404296875,
+                    30.911376953125,
+                    53.24871826171875
+                ],
+                [
+                    1116.59912109375,
+                    392.80596923828125,
+                    60.04931640625,
+                    78.0367431640625
+                ],
+                [
+                    1138.205322265625,
+                    210.09432983398438,
+                    23.543212890625,
+                    65.68438720703125
+                ],
+                [
+                    116.3570785522461,
+                    201.34698486328125,
+                    27.26819610595703,
+                    53.96807861328125
+                ],
+                [
+                    238.66563415527344,
+                    517.6160278320312,
+                    67.37342834472656,
+                    98.0269775390625
+                ],
+                [
+                    248.91848754882812,
+                    197.51364135742188,
+                    19.34613037109375,
+                    51.829132080078125
+                ],
+                [
+                    614.188720703125,
+                    151.8590850830078,
+                    27.522216796875,
+                    43.963623046875
+                ],
+                [
+                    996.7164306640625,
+                    461.94769287109375,
+                    12.4677734375,
+                    14.599853515625
+                ],
+                [
+                    0.0,
+                    227.67489624023438,
+                    25.997562408447266,
+                    65.462890625
+                ]
+            ]
 
-    for i in range(len(bbox)):
-        bbox[i][0] = int(bbox[i][0] * w)
-        bbox[i][1] = int(bbox[i][1] * h)
-        bbox[i][2] = int(bbox[i][2] * w)
-        bbox[i][3] = int(bbox[i][3] * h)
 
     # visualize bbox
-    # for box in bbox:
-    #     x, y, w, h = box
-    #     cv2.rectangle(current_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-    # cv2.imwrite("test_video/current_frame_bbox.jpg", current_frame)
+    for box in bbox:
+        x = int(box[0])
+        y = int(box[1])
+        w = int(box[2])
+        h = int(box[3])
+        cv2.rectangle(current_frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    cv2.imwrite("test_video/current_frame_bbox.jpg", current_frame)
 
 
     flow = get_optical_flow(previous_frame, current_frame, bbox, special_points)
@@ -97,6 +201,8 @@ if __name__ == "__main__":
         y = flow_[1]
         middle_x = bbox[i][0] + bbox[i][2] // 2
         middle_y = bbox[i][1] + bbox[i][3] // 2
+        middle_x = int(middle_x)
+        middle_y = int(middle_y)
 
 
         x *= 10

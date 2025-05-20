@@ -1,4 +1,4 @@
-path = "game_example"
+path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United"
 label_path = f"{path}/Labels-v2.json"
 frame_informati_path = f"{path}/output.json"
 first_half_video_path = f"{path}/1_720p.mkv"
@@ -107,13 +107,11 @@ def visulize_one_frame(frame_idx, half, frame_info):
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
         categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
-        team = info["team_detections"][i]
         flow_x, flow_y = info["optical_flows"][i]
         flow_x *= 50
         flow_y *= 50
         cv2.rectangle(frame, (int(x), int(y)), (int(x+w), int(y+h)), (0, 255, 0), 2)
-        cv2.putText(frame, f"{categories} {role_detections} {team}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"{categories}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.arrowedLine(frame, (int(x+w/2), int(y+h/2)), (int(x+w/2+flow_x), int(y+h/2+flow_y)), (255, 0, 0), 1)
         
     # save to f"{path}/output/{ht}_{half}.jpg"
@@ -138,12 +136,10 @@ def visulize_one_frame(frame_idx, half, frame_info):
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
         categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
-        team = info["team_detections"][i]
         pos = positions[i]
         dir = directions[i]
-        positions_dict[f"{categories}-{role_detections}-{team}-{i}"] = pos
-        directions_dict[f"{categories}-{role_detections}-{team}-{i}"] = dir
+        positions_dict[f"{categories}-{i}"] = pos
+        directions_dict[f"{categories}-{i}"] = dir
 
     positions_dict["left_top"] = project_point(H, (0, 0))
     positions_dict["right_top"] = project_point(H, (1, 0))
@@ -183,12 +179,11 @@ def process_one_frame(ht, half, frame_info):
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
         categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
         flow_x, flow_y = info["optical_flows"][i]
         flow_x *= 50
         flow_y *= 50
         cv2.rectangle(frame, (int(x), int(y)), (int(x+w), int(y+h)), (0, 255, 0), 2)
-        cv2.putText(frame, f"{categories} {role_detections}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f"{categories}", (int(x), int(y)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.arrowedLine(frame, (int(x+w/2), int(y+h/2)), (int(x+w/2+flow_x), int(y+h/2+flow_y)), (255, 0, 0), 1)
         
     # save to f"{path}/output/{ht}_{half}.jpg"
@@ -213,11 +208,10 @@ def process_one_frame(ht, half, frame_info):
     for i in range(len(info["bboxes_ltwh"])):
         x,y,w,h = info["bboxes_ltwh"][i]
         categories = info["categories"][i]
-        role_detections = info["role_detections"][i]
         pos = positions[i]
         dir = directions[i]
-        positions_dict[f"{categories}-{role_detections}-{i}"] = pos
-        directions_dict[f"{categories}-{role_detections}-{i}"] = dir
+        positions_dict[f"{categories}-{i}"] = pos
+        directions_dict[f"{categories}-{i}"] = dir
     return {"time": info["time"], "half": half, "htime": ht, "positions": positions_dict, "directions": directions_dict}
 
 if __name__ == "__main__":
@@ -236,7 +230,7 @@ if __name__ == "__main__":
         print(frame["frame"], frame["half"])
 
 
-    all_time_half = [(21475, "first")]
+    # all_time_half = [(21475, "first")]
 
     # results = []
     
@@ -248,5 +242,12 @@ if __name__ == "__main__":
     #     json.dump(results, f, indent=4)
 
     # visulize_one_frame(478, "first", new_frame)
+
+
+    # shuffle the all_time_half
+    np.random.shuffle(all_time_half)
+
+    all_time_half = all_time_half[:20]
+
     for ht, half in tqdm(all_time_half):
         visulize_one_frame(ht, half, new_frame)

@@ -8,15 +8,83 @@ data_path = f"{path}/data.json"
 labels = json.load(open(label_path, "r"))
 frame_informations = json.load(open(data_path, "r"))
 
+# 翻转下半场的left,right
+new_frame_informations = []
+for element in frame_informations:
+    new_element = element.copy()
+    left_position = {}
+    left_direction = {}
+    right_position = {}
+    right_direction = {}
+    ball_direction = {}
+    ball_position = {}
+    for key, value in element["positions"].items():
+        role, index = key.split("-")
+        index = int(index)
+        if element["half"] == "second":
+            if role == "left":
+                role = "right"
+            elif role == "right":
+                role = "left"
+        if role == "left":
+            left_position[index] = value
+            left_direction[index] = element["directions"][key]
+        elif role == "right":
+            right_position[index] = value
+            right_direction[index] = element["directions"][key]
+        elif role == "ball":
+            ball_position[index] = value
+            ball_direction[index] = element["directions"][key]
+    
+    new_element["positions"] = {}
+    new_element["directions"] = {}
+    if len(ball_position) > 1:
+        # keep the one with max bbox_confs
+        max_bbox_conf_index = -1
+        for index in ball_position.keys():
+            if max_bbox_conf_index == -1 or element["bbox_confs"][index] > element["bbox_confs"][max_bbox_conf_index]:
+                max_bbox_conf_index = index
+        ball_position = {max_bbox_conf_index: ball_position[max_bbox_conf_index]}
+        ball_direction = {max_bbox_conf_index: ball_direction[max_bbox_conf_index]}
+    for index, value in left_position.items():
+        if value[1] < -34:
+            # seen as substituted
+            continue
+        new_element["positions"][f"left-{index}"] = value
+        new_element["directions"][f"left-{index}"] = left_direction[index]
+    for index, value in right_position.items():
+        if value[1] < -34:
+            # seen as substituted
+            continue
+        new_element["positions"][f"right-{index}"] = value
+        new_element["directions"][f"right-{index}"] = right_direction[index]
+    for index, value in ball_position.items():
+        new_element["positions"][f"ball-{index}"] = value
+        new_element["directions"][f"ball-{index}"] = ball_direction[index]
+
+    new_frame_informations.append(new_element)
+frame_informations = new_frame_informations
+
+to_lr = {}
+
 if labels["LeftFirstHalf"] == "away":
-    to_lr = {
+    to_lr["first"] = {
         "away": "left",
         "home": "right"
     }
-else:
-    to_lr = {
+    to_lr["second"] = {
         "away": "right",
         "home": "left"
+    }
+else:
+    assert labels["LeftFirstHalf"] == "home", f"Error: {labels['LeftFirstHalf']} is not in [home, away]"
+    to_lr["first"] = {
+        "home": "left",
+        "away": "right"
+    }
+    to_lr["second"] = {
+        "home": "right",
+        "away": "left"
     }
 
 rewards = {
@@ -55,7 +123,6 @@ import re
 
 for label in labels["annotations"]:
     if label["label"] in rewards:
-        reward_for_left = rewards[label["label"]][0] if to_lr[label["team"]] == "left" else rewards[label["label"]][1]
         text = label["gameTime"]
         match = re.match(r"(\d+)\s*-\s*(\d{2}):(\d{2})", text)
         if match:
@@ -64,6 +131,10 @@ for label in labels["annotations"]:
             seconds = int(match.group(3))
         else:
             raise ValueError("字符串格式不正确")
+        
+        half = "first" if index == 1 else "second"
+
+        reward_for_left = rewards[label["label"]][0] if to_lr[half][label["team"]] == "left" else rewards[label["label"]][1]
         
         sparse_rewards[index-1][minutes*60 + seconds] += reward_for_left
 
@@ -81,7 +152,6 @@ for data in frame_informations:
         if "ball" in item:
             ball_position_reward[index-1][seconds] = pos[0]/52.5
     
-    _x = []
     _x = []
     for item, pos in data["positions"].items():
         if "left" in item or "right" in item:
@@ -178,8 +248,8 @@ plot_and_save(player_position_reward, "Player Position Reward", "plot/player_pos
 plot_and_save(sparse_rewards, "Sparse Rewards", "plot/sparse_rewards.png")
 plot_and_save(rewards, "Total Reward", "plot/total_reward.png")
 
-slide_window_size = 15
-ld = 1.2
+slide_window_size = 20
+ld = 1.1
 new_rewards = np.zeros((2, 50*60))
 
 
