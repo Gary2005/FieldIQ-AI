@@ -240,32 +240,44 @@ def get_pitch_from_pt(features, value=None):
             fill=False, color='black', lw=2)
         ax.add_patch(goal)
 
-    # === 3️⃣ 绘制球员位置和运动方向 ===
+    # 统计有效球员
+    valid_players = []
     for idx, player in enumerate(features):
         x, y, vx, vy, team_id = player.tolist()
-        x *= field_length / 2
-        y *= field_width / 2
+        x_field = x * field_length / 2
+        y_field = y * field_width / 2
         vx *= 10
         vy *= 10
 
-        # 跳过 padding (x, y) == (0, 0) 或 team_id 异常
+        # 跳过 padding (x, y) == (0, 0) 且速度为 0
         if (x == 0 and y == 0 and vx == 0 and vy == 0):
             continue
 
-        assert int(team_id) in color_map, f"Invalid team_id: {team_id}"
+        if int(team_id) not in color_map:
+            continue
 
-        # 设置颜色
-        color = color_map[int(team_id)]
+        valid_players.append((idx, x_field, y_field, int(team_id)))
+
+    # 文字显示区位置
+    label_x = field_length / 2 + 5
+    num_labels = len(valid_players)
+    label_ys = list(
+        np.linspace(-field_width / 2 + 5, field_width / 2 - 5, num_labels)
+    )
+
+    # 绘制球员 + 外部文字和连接线
+    for label_idx, (player_info, label_y) in enumerate(zip(valid_players, label_ys)):
+        idx, x, y, team_id = player_info
+        color = color_map[team_id]
 
         # 绘制球员位置
         ax.plot(x, y, 'o', color=color, markersize=8)
 
-        # 绘制运动方向箭头
-        # ax.arrow(x, y, vx * 3, vy * 3, head_width=1, head_length=1, fc=color, ec=color, lw=2)
-
-        # 如果有 value，则在头顶显示对应的值
-        if value is not None and idx < len(value):
-            ax.text(x, y + 2, f'{value[idx].item():.2f}', color='black', fontsize=8, ha='center', va='bottom')
+        # 文字和连线
+        if value is not None and idx < len(value) and value[idx] != 1000:
+            text_str = f'{value[idx].item():.2f}'
+            ax.text(label_x, label_y, text_str, fontsize=12, ha='left', va='center', color='black')
+            ax.plot([x, label_x - 1], [y, label_y], color='gray', lw=1, linestyle='--')
 
     return fig
 
