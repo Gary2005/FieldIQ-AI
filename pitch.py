@@ -239,16 +239,23 @@ def get_pitch_from_pt(features, value=None):
             side * goal_post_depth, goal_width,
             fill=False, color='black', lw=2)
         ax.add_patch(goal)
+    import numpy as np
+    from matplotlib import cm
+    import matplotlib.colors as mcolors
+
+    # 固定的颜色列表（可扩展）
+    line_colors = [
+        'red', 'orange', 'green', 'cyan', 'blue', 'purple',
+        'brown', 'magenta', 'olive', 'teal', 'pink', 'gray'
+    ]
 
     # 筛选有效球员并获取分数
     valid_players = []
-    score_list = []
     for idx, player in enumerate(features):
         x, y, vx, vy, team_id = player.tolist()
         x_field = x * field_length / 2
         y_field = y * field_width / 2
 
-        # 跳过 padding
         if (x == 0 and y == 0 and vx == 0 and vy == 0):
             continue
         if int(team_id) not in color_map:
@@ -258,20 +265,11 @@ def get_pitch_from_pt(features, value=None):
 
         score = value[idx].item()
         valid_players.append((idx, x_field, y_field, int(team_id), score))
-        score_list.append(score)
 
-    # 按分数从高到低排序
+    # 按分数排序（高到低）
     valid_players.sort(key=lambda x: -x[4])
 
-    import numpy as np
-    import matplotlib.cm as cm
-    import matplotlib.colors as mcolors
-
-    # 准备颜色映射（从蓝到红）
-    norm = mcolors.Normalize(vmin=min(score_list), vmax=max(score_list))
-    cmap = cm.get_cmap("coolwarm")  # 蓝到红
-
-    # 设置文字区域（在球场右侧）
+    # 设置文字区域（右边排列）
     label_x = field_length / 2 + 5
     num_labels = len(valid_players)
     label_ys = np.linspace(field_width / 2 - 5, -field_width / 2 + 5, num_labels)
@@ -279,7 +277,7 @@ def get_pitch_from_pt(features, value=None):
     # 绘制球员 + 分数 + 连接线
     for label_y, (idx, x, y, team_id, score) in zip(label_ys, valid_players):
         color = color_map[team_id]
-        line_color = cmap(norm(score))
+        line_color = line_colors[idx % len(line_colors)]  # 颜色轮换
 
         # 球员位置
         ax.plot(x, y, 'o', color=color, markersize=8)
@@ -287,9 +285,8 @@ def get_pitch_from_pt(features, value=None):
         # 分数文字
         ax.text(label_x, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color='black')
 
-        # 虚线连接
+        # 连线
         ax.plot([x, label_x - 1], [y, label_y], color=line_color, lw=2, linestyle='--')
-
     return fig
 
 if __name__ == "__main__":
