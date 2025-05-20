@@ -1,4 +1,4 @@
-path = "2015-02-21 - 18-00 Swansea 2 - 1 Manchester United"
+path = "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa"
 label_path = f"{path}/Labels-v2.json"
 frame_informati_path = f"{path}/output.json"
 first_half_video_path = f"{path}/1_720p.mkv"

@@ -11,6 +11,7 @@ import os
 import random
 from pitch import get_pitch_from_pt
 import numpy as np
+json_paths = ["2015-02-21 - 18-00 Swansea 2 - 1 Manchester United/cleaned_data.json", "2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa/cleaned_data.json"]
 
 # ===============================
 # 配置超参数
@@ -41,21 +42,22 @@ def process_data(json_paths):
         with open(json_path, "r") as f:
             match_data = json.load(f)
             data.extend(match_data)
-
-    # shuffle 后选择 512 条数据作为测试集
+    
+    # 选出B条数据作为测试集
+    B = 2048
+    # shuffle data
     random.shuffle(data)
-    test_data = data[:512]
-    data = data[512:]
-
+    test_data = data[:B]
+    data = data[B:]
+    
     return data, test_data
 
 # ===============================
 # 准备数据
 # ===============================
-json_paths = ["game_example/cleaned_data.json"]
 data, test_data = process_data(json_paths)
 train_dataset = SoccerDataset(data, mx_len=config["max_len"])
-test_dataset = SoccerDataset(test_data, mx_len=config["max_len"])
+test_dataset = SoccerDataset(test_data, mx_len=config["max_len"], data_augmentation=False)
 dataloader = DataLoader(train_dataset, batch_size=config["batch_size"], shuffle=True)
 dataloader_test = DataLoader(test_dataset, batch_size=config["batch_size"], shuffle=False)
 wandb.init(project="soccer-transformer", name="training-run-1", config=config)

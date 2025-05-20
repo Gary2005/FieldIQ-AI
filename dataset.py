@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 
 class SoccerDataset(Dataset):
-    def __init__(self, data, mx_len = 20):
+    def __init__(self, data, mx_len = 20, data_augmentation = True):
         """
         data: List of match situations. 
               Each situation is a list of player features + target.
@@ -21,7 +21,28 @@ class SoccerDataset(Dataset):
         data_ = []
         for situation in data:
             if len(situation[0]) > 0:
-                data_.append(situation)
+                if data_augmentation == False:
+                    data_.append(situation)
+                else:
+                    for reverse_x in [-1,1]:
+                        for reverse_y in [-1,1]:
+                            new_players = []
+                            new_target = situation[1]
+                            if reverse_x == -1:
+                                new_target = -new_target
+                            for player in situation[0]:
+                                new_team = player["team_id"]
+                                if new_team != -1 and reverse_x == -1:
+                                    new_team = 1 - new_team
+                                new_player = {
+                                    "x": player["x"] * reverse_x,
+                                    "y": player["y"] * reverse_y,
+                                    "vx": player["vx"] * reverse_x,
+                                    "vy": player["vy"] * reverse_y,
+                                    "team_id": new_team
+                                }
+                                new_players.append(new_player)
+                            data_.append((new_players, new_target))
         data = data_
 
         mx_target = max([(situation[1]) for situation in data])

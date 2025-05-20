@@ -104,16 +104,16 @@ rewards = {
     "Foul": [-2, 2],
     "Indirect free-kick": [2, -2],
     "Clearance": [1, -1],
-    "Shots on target": [7, -7],
-    "Shots off target": [4, -4],
-    "Corner": [3, -3],
-    "Direct free-kick": [3, -3],
-    "Yellow card": [-3, 3],
-    "Goal": [20, -20],
-    "Penalty": [15, -15],
-    "Red card": [-10, 10],
-    "Yellow->red card": [-10, 10],
-    "Offside": [-1, 1],
+    "Shots on target": [20, -20],
+    "Shots off target": [15, -15],
+    "Corner": [7, -7],
+    "Direct free-kick": [5, -5],
+    "Yellow card": [-5, 5],
+    "Goal": [30, -30],
+    "Penalty": [22, -22],
+    "Red card": [-15, 15],
+    "Yellow->red card": [-15, 15],
+    "Offside": [-1, 1]
 }
 
 import numpy as np
@@ -150,6 +150,20 @@ for label in labels["annotations"]:
         
         sparse_rewards[index-1][minutes*60 + seconds] += reward_for_left
 
+def check_in_penalty_area(pos):
+    # return "left", "right" or "out", and the reward
+    x,y = pos
+    if abs(x) < 105/2 - 16.5:
+        return "out", None
+    if abs(y) > 20.16:
+        return "out", None
+    
+    if x > 0:
+        return "right", (2 - abs(y)/20.16) * 5
+    else:
+        return "left", (2 - abs(y)/20.16) * 5
+    
+
 for data in frame_informations:
     text = data["time"]
     index = 1 if data["half"] == "first" else 2
@@ -160,18 +174,50 @@ for data in frame_informations:
     else:
         raise ValueError("字符串格式不正确")
     
+    ball_position = None
+
     for item, pos in data["positions"].items():
         if "ball" in item:
             ball_position_reward[index-1][seconds] = pos[0]/52.5
+            ball_position = pos
+
+    if ball_position is not None:
+        # check if in the penalty area
+        in_, reward = check_in_penalty_area(ball_position)
+        if in_ == "left":
+            # 检查球半径3m内是否有right队员
+            flag = False
+            for item, pos in data["positions"].items():
+                if "right" in item:
+                    if abs(pos[0] - ball_position[0]) < 3 and abs(pos[1] - ball_position[1]) < 3:
+                        flag = True
+                        break
+            if flag:
+                ball_position_reward[index-1][seconds] = -reward
+            # print(seconds)
+        elif in_ == "right":
+            # 检查球半径3m内是否有left队员
+            flag = False
+            for item, pos in data["positions"].items():
+                if "left" in item:
+                    if abs(pos[0] - ball_position[0]) < 3 and abs(pos[1] - ball_position[1]) < 3:
+                        flag = True
+                        break
+            ball_position_reward[index-1][seconds] = reward
+            # print(seconds)
+
     
     _x = []
     for item, pos in data["positions"].items():
-        if "left" in item or "right" in item:
-            _x.append(pos[0])
+        if "left" in item:
+            _x.append(max(0, pos[0]))
+        elif "right" in item:
+            _x.append(min(0, pos[0]))
 
     if len(_x) == 0:
         continue
-    player_position_reward[index-1][seconds] = np.mean(_x) / 52.5
+    player_position_reward[index-1][seconds] = np.sum(_x) / 52.5
+
 
 # we want position reward to be continuous
 def make_continuous(position_reward):
@@ -213,8 +259,8 @@ player_position_reward = make_continuous(player_position_reward)
 print("---")
 
 
-alpha = 2
-beta = 2
+alpha = 1
+beta = 1/6
 
 rewards = alpha * ball_position_reward + beta * player_position_reward + sparse_rewards
 print(sparse_rewards)
@@ -260,7 +306,7 @@ plot_and_save(player_position_reward, "Player Position Reward", "plot/player_pos
 plot_and_save(sparse_rewards, "Sparse Rewards", "plot/sparse_rewards.png")
 plot_and_save(rewards, "Total Reward", "plot/total_reward.png")
 
-slide_window_size = 20
+slide_window_size = 15
 ld = 1.1
 new_rewards = np.zeros((2, 50*60))
 
@@ -270,12 +316,12 @@ for i in range(2):
         for k in range(j, min(j+slide_window_size, 50*60)):
             new_rewards[i][j] += rewards[i][k] / (ld**(k-j))
 
-new_rewards /= 20
+new_rewards /= 32
 
 
 plot_and_save(new_rewards, "New Total Reward", "plot/new_total_reward.png")
 
-query_idx = 14 * 60 + 29
+query_idx = 1500
 queyr_index = 1
 
 left = query_idx - 30
@@ -361,6 +407,6 @@ for data in frame_informations:
             "team_id": team_id
         })
     cleaned_data.append((players_info, target))
-with open("game_example/cleaned_data.json", "w") as f:
+with open(f"{path}/cleaned_data.json", "w") as f:
     json.dump(cleaned_data, f)
 print("cleaned_data.json saved.")
