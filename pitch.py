@@ -240,44 +240,55 @@ def get_pitch_from_pt(features, value=None):
             fill=False, color='black', lw=2)
         ax.add_patch(goal)
 
-    # 统计有效球员
+    # 筛选有效球员并获取分数
     valid_players = []
+    score_list = []
     for idx, player in enumerate(features):
         x, y, vx, vy, team_id = player.tolist()
         x_field = x * field_length / 2
         y_field = y * field_width / 2
-        vx *= 10
-        vy *= 10
 
-        # 跳过 padding (x, y) == (0, 0) 且速度为 0
+        # 跳过 padding
         if (x == 0 and y == 0 and vx == 0 and vy == 0):
             continue
-
         if int(team_id) not in color_map:
             continue
+        if value is None or idx >= len(value) or value[idx] == 1000:
+            continue
 
-        valid_players.append((idx, x_field, y_field, int(team_id)))
+        score = value[idx].item()
+        valid_players.append((idx, x_field, y_field, int(team_id), score))
+        score_list.append(score)
 
-    # 文字显示区位置
+    # 按分数从高到低排序
+    valid_players.sort(key=lambda x: -x[4])
+
+    import numpy as np
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+
+    # 准备颜色映射（从蓝到红）
+    norm = mcolors.Normalize(vmin=min(score_list), vmax=max(score_list))
+    cmap = cm.get_cmap("coolwarm")  # 蓝到红
+
+    # 设置文字区域（在球场右侧）
     label_x = field_length / 2 + 5
     num_labels = len(valid_players)
-    label_ys = list(
-        np.linspace(-field_width / 2 + 5, field_width / 2 - 5, num_labels)
-    )
+    label_ys = np.linspace(field_width / 2 - 5, -field_width / 2 + 5, num_labels)
 
-    # 绘制球员 + 外部文字和连接线
-    for label_idx, (player_info, label_y) in enumerate(zip(valid_players, label_ys)):
-        idx, x, y, team_id = player_info
+    # 绘制球员 + 分数 + 连接线
+    for label_y, (idx, x, y, team_id, score) in zip(label_ys, valid_players):
         color = color_map[team_id]
+        line_color = cmap(norm(score))
 
-        # 绘制球员位置
+        # 球员位置
         ax.plot(x, y, 'o', color=color, markersize=8)
 
-        # 文字和连线
-        if value is not None and idx < len(value) and value[idx] != 1000:
-            text_str = f'{value[idx].item():.2f}'
-            ax.text(label_x, label_y, text_str, fontsize=12, ha='left', va='center', color='black')
-            ax.plot([x, label_x - 1], [y, label_y], color='gray', lw=1, linestyle='--')
+        # 分数文字
+        ax.text(label_x, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color='black')
+
+        # 虚线连接
+        ax.plot([x, label_x - 1], [y, label_y], color=line_color, lw=2, linestyle='--')
 
     return fig
 
