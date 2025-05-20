@@ -256,6 +256,9 @@ def get_pitch_from_pt(features, value=None):
         x_field = x * field_length / 2
         y_field = y * field_width / 2
 
+        if team_id == -1:
+            ax.plot(x_field, y_field, 'o', color='green', markersize=10)
+
         if (x == 0 and y == 0 and vx == 0 and vy == 0):
             continue
         if int(team_id) not in color_map:
@@ -283,10 +286,10 @@ def get_pitch_from_pt(features, value=None):
         ax.plot(x, y, 'o', color=color, markersize=8)
 
         # 分数文字
-        ax.text(label_x, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color='black')
+        ax.text(label_x, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color=line_color)
 
         # 连线
-        ax.plot([x, label_x - 1], [y, label_y], color=line_color, lw=2, linestyle='--')
+        ax.plot([x, label_x - 1], [y, label_y], color=line_color, lw=1, linestyle='--')
     return fig
 
 if __name__ == "__main__":
