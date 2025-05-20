@@ -271,25 +271,33 @@ def get_pitch_from_pt(features, value=None):
 
     # 按分数排序（高到低）
     valid_players.sort(key=lambda x: -x[4])
+    # 分组
+    team0_players = [p for p in valid_players if p[3] == 0]
+    team1_players = [p for p in valid_players if p[3] == 1]
 
-    # 设置文字区域（右边排列）
-    label_x = field_length / 2 + 5
-    num_labels = len(valid_players)
-    label_ys = np.linspace(field_width / 2 - 5, -field_width / 2 + 5, num_labels)
+    # 左右文字区域的横坐标
+    label_x_left = -field_length / 2 - 5
+    label_x_right = field_length / 2 + 5
 
-    # 绘制球员 + 分数 + 连接线
-    for label_y, (idx, x, y, team_id, score) in zip(label_ys, valid_players):
+    # 生成左右的纵坐标（从上到下排）
+    label_ys_left = np.linspace(field_width / 2 - 5, -field_width / 2 + 5, len(team0_players))
+    label_ys_right = np.linspace(field_width / 2 - 5, -field_width / 2 + 5, len(team1_players))
+
+    # 左边（team 0）
+    for label_y, (idx, x, y, team_id, score) in zip(label_ys_left, team0_players):
         color = color_map[team_id]
-        line_color = line_colors[idx % len(line_colors)]  # 颜色轮换
-
-        # 球员位置
+        line_color = line_colors[idx % len(line_colors)]
         ax.plot(x, y, 'o', color=color, markersize=8)
+        ax.text(label_x_left, label_y, f'{score:.2f}', fontsize=12, ha='right', va='center', color=line_color)
+        ax.plot([x, label_x_left + 1], [y, label_y], color=line_color, lw=1, linestyle='--')
 
-        # 分数文字
-        ax.text(label_x, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color=line_color)
-
-        # 连线
-        ax.plot([x, label_x - 1], [y, label_y], color=line_color, lw=1, linestyle='--')
+    # 右边（team 1）
+    for label_y, (idx, x, y, team_id, score) in zip(label_ys_right, team1_players):
+        color = color_map[team_id]
+        line_color = line_colors[idx % len(line_colors)]
+        ax.plot(x, y, 'o', color=color, markersize=8)
+        ax.text(label_x_right, label_y, f'{score:.2f}', fontsize=12, ha='left', va='center', color=line_color)
+        ax.plot([x, label_x_right - 1], [y, label_y], color=line_color, lw=1, linestyle='--')
     return fig
 
 if __name__ == "__main__":
