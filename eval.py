@@ -29,7 +29,7 @@ json_path = "game_example/data.json"
 config = {
     "name": "mask_one_left",
     "batch_size": 128,
-    "learning_rate": 1e-5,
+    "learning_rate": 1e-4,
     "epochs": 30,
     "d_model": 128,
     "nhead": 8,

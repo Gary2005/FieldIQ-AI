@@ -1,6 +1,6 @@
 import json
 
-path = "2016-01-13 - 22-45 Chelsea 2 - 2 West Brom"
+path = "2016-02-07 - 10-00 Chelsea 1 - 1 Manchester United"
 
 label_path = f"{path}/Labels-v2.json"
 data_path = f"{path}/data.json"
@@ -175,6 +175,8 @@ for data in frame_informations:
         raise ValueError("字符串格式不正确")
     
     ball_position = None
+    if seconds >= 3000:
+        continue
 
     for item, pos in data["positions"].items():
         if "ball" in item:
@@ -387,6 +389,9 @@ for data in frame_informations:
         seconds = int(match.group(1))
     else:
         raise ValueError("字符串格式不正确")
+    
+    if seconds >= 3000:
+        continue
     
     target = new_rewards[index-1][seconds]
     players_info = []
