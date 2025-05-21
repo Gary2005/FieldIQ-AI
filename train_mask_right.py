@@ -20,7 +20,7 @@ config = {
     "batch_size": 128,
     "learning_rate": 1e-5,
     "epochs": 30,
-    "d_model": 64,
+    "d_model": 128,
     "nhead": 8,
     "num_layers": 4,
     "max_len": 23,

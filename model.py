@@ -12,10 +12,12 @@ class MaskedAvgPooling(nn.Module):
         return x.sum(dim=-1) / valid_counts
 
 class SoccerTransformer(nn.Module):
-    def __init__(self, d_model=36, nhead=6, num_layers=4, max_len=20):
+    def __init__(self, d_model=36, nhead=6, num_layers=4, max_len=20, d_model_team = 8):
         super(SoccerTransformer, self).__init__()
         
-        self.input_proj = nn.Linear(3, d_model)
+        self.pos_x_embedding = nn.Embedding(105,( d_model - d_model_team) // 2)
+        self.pos_y_embedding = nn.Embedding(68, (d_model - d_model_team) // 2)
+        self.team_embedding = nn.Embedding(3, d_model_team)
         
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True),
@@ -31,9 +33,24 @@ class SoccerTransformer(nn.Module):
         """
 
         # only keep the 0,1,4 features(ignore vx, vy)
-        player_features = player_features[:, :, [0, 1, 4]]
+        x_grid = torch.floor(player_features[:,:,0] + 52.5).long()
+        x_grid = torch.clamp(x_grid, 0, 104)
+        y_grid = torch.floor(player_features[:,:,1] + 34.5).long()
+        y_grid = torch.clamp(y_grid, 0, 67)
+        team_id = player_features[:,:,4]
+        team_id = team_id.clone()
+        team_id[team_id == -1] = 2
+        team_token = team_id.long() # [batch_size, max_len]
 
-        x = self.input_proj(player_features)  # [batch_size, max_len, d_model]
+        grid_x_embedding = self.pos_x_embedding(x_grid)  # [batch_size, max_len, (d_model - d_model_team) // 2]
+        grid_y_embedding = self.pos_y_embedding(y_grid)
+        # [batch_size, max_len, (d_model - d_model_team) // 2]
+        team_embedding = self.team_embedding(team_token)
+        # [batch_size, max_len, d_model_team]
+
+        x = torch.cat([grid_x_embedding, grid_y_embedding, team_embedding], dim=-1)
+        # [batch_size, max_len, d_model]
+        
         x = self.transformer_encoder(x, src_key_padding_mask=mask)  # [batch_size, max_len, d_model]
         x = x.permute(0, 2, 1)  # [batch_size, d_model, max_len]
         x = self.pooling(x, mask)  # Mask-aware pooling

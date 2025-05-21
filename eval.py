@@ -18,25 +18,26 @@ import cv2
 # ===============================
 
 
-pth_see_all = "checkpoints/see_all/model_epoch_1_step_1600_loss_0.1740.pth"
-pth_mask_right = "checkpoints/mask_one_right/model_epoch_1_step_9100_loss_0.1739.pth"
-pth_mask_left = "checkpoints/mask_one_left/model_epoch_1_step_6900_loss_0.1449.pth"
+pth_see_all = "checkpoints/see_all/latest/model_latest.pth"
+pth_mask_right = "checkpoints/mask_one_right/latest/model_latest.pth"
+pth_mask_left = "checkpoints/mask_one_left/latest/model_latest.pth"
 output_path = "plot"
 video_path_first = "game_example/1_720p.mkv"
 video_path_second = "game_example/2_720p.mkv"
 json_path = "game_example/data.json"
 
 config = {
-    "name": "see_all",
-    "batch_size": 64,
-    "learning_rate": 1e-4,
-    "epochs": 100,
-    "d_model": 16,
-    "nhead": 4,
-    "num_layers": 2,
+    "name": "mask_one_left",
+    "batch_size": 128,
+    "learning_rate": 1e-5,
+    "epochs": 30,
+    "d_model": 128,
+    "nhead": 8,
+    "num_layers": 4,
     "max_len": 23,
     "valid_step": 100,
-    "visualize_sample": 8
+    "visualize_sample": 8,
+    "weight_decay": 1e-4,
 }
 device = "cuda:7"
 
@@ -125,18 +126,21 @@ if __name__ == "__main__":
     # player_feature, target, mask = sample_data(21475, "first")
     # dict_ = sample_data(23600, "first")
     dict_ =[
-{'x': 22, 'y': -12, 'vx': 0, 'vy': 0, 'team_id': 0},
-{'x': 22, 'y': -22, 'vx': 0, 'vy': 0, 'team_id': 1},
-{'x': 36, 'y': -22, 'vx': 0, 'vy': 0, 'team_id': 1},
-{'x': 38, 'y': -23, 'vx': 0, 'vy': 0, 'team_id': 0},
-{'x': 42, 'y': -20, 'vx': 0, 'vy': 0, 'team_id': 1},
-{'x': 42, 'y': -22, 'vx': 0, 'vy': 0, 'team_id': 0},
-{'x': 42.3, 'y': -21.5, 'vx': 0, 'vy': 0, 'team_id': -1},
-{'x': 40, 'y': -16, 'vx': 0, 'vy': 0, 'team_id': 1},
-{'x': 42, 'y': -2, 'vx': 0, 'vy': 0, 'team_id': 0},
-{'x': 43, 'y': -1, 'vx': 0, 'vy': 0, 'team_id': 1},
-{'x': 36, 'y': 0, 'vx': 0, 'vy': 0, 'team_id': 0},
-{'x': 37, 'y': 1, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -14.316568900640467, 'y': -9.783667077827891, 'vx': -4.557202273868111, 'vy': 3.531992335658307, 'team_id': 0},
+{'x': -16.12526326025321, 'y': 1.4792967568161055, 'vx': -4.777759023919526, 'vy': 5.375112968657553, 'team_id': 0},
+{'x': -14.276554933798739, 'y': 14.727766403174268, 'vx': -4.738958236427937, 'vy': 4.705132353296282, 'team_id': 0},
+{'x': -7.206119969380019, 'y': 3.9929892579050255, 'vx': -4.293126413366388, 'vy': 3.0733821797480743, 'team_id': 0},
+{'x': -1.4397939423980124, 'y': 9.307832360176183, 'vx': -2.012896328088065, 'vy': 1.6797217783507623, 'team_id': 1},
+{'x': -1.3259927316192313, 'y': -12.729802012021594, 'vx': -3.3779267401997606, 'vy': 0.6574615367628933, 'team_id': 1},
+{'x': -4.534249277782724, 'y': 4.594560995763602, 'vx': -4.203857594629246, 'vy': 2.1974530734902853, 'team_id': 1},
+{'x': -6.685481852390099, 'y': 9.474649597406298, 'vx': -5.088842665815108, 'vy': 5.044995246996953, 'team_id': 0},
+{'x': -6.306445028782631, 'y': 22.352032977186973, 'vx': -4.5775775021133835, 'vy': 3.7004519110953815, 'team_id': 1},
+{'x': -14.802488080643963, 'y': 2.787400285096983, 'vx': -4.4052729008707825, 'vy': 2.413813197191672, 'team_id': 1},
+{'x': 7.036515938003775, 'y': 14.57116654808866, 'vx': -1.321232243387871, 'vy': -0.6112222602602024, 'team_id': 0},
+{'x': 5.161560505689675, 'y': 5.450439408554166, 'vx': -2.5033096532446786, 'vy': -0.45584892329553206, 'team_id': 0},
+{'x': -16.43171705854705, 'y': 8.602372599250419, 'vx': -4.590090410251957, 'vy': 0.21086738692113194, 'team_id': 0},
+{'x': -8.184618006720921, 'y': 10.607565830206047, 'vx': -3.810884218647459, 'vy': 4.142518202433942, 'team_id': 1},
+{'x': -8.184618006720921 - 0.5, 'y': 10.607565830206047 + 0.5, 'vx': -3.810884218647459, 'vy': 4.142518202433942, 'team_id': -1},
 ]
 
     print("[")
@@ -231,7 +235,7 @@ if __name__ == "__main__":
     print(values)
 
 
-    img = get_pitch_from_pt(player_feature, values, None)
+    img = get_pitch_from_pt(player_feature, values, best_position=best_position)
 
     # save the image to output_path
     if not os.path.exists(output_path):
