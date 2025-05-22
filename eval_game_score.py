@@ -52,6 +52,8 @@ model_see_all = SoccerTransformer(
 model_see_all.load_state_dict(torch.load(pth_see_all, map_location=device))
 model_see_all.eval()
 
+diff = []
+
 for i in tqdm(range(len(data))):
     if len(data[i]) == 0:
         continue
@@ -77,6 +79,9 @@ for i in tqdm(range(len(data))):
             values[ele["half"]][ele["time"]] = model_see_all(players_features, padding_mask)[0].item()
             # print(values[ele["half"]][ele["time"]])
             values_target[ele["half"]][ele["time"]] = target
+            diff.append((values[ele["half"]][ele["time"]] - target)**2)
+
+print("MSE: ", np.mean(diff))
 
 
 import matplotlib.pyplot as plt
