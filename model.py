@@ -15,9 +15,9 @@ class SoccerTransformer(nn.Module):
     def __init__(self, d_model=36, nhead=6, num_layers=4, max_len=20, d_model_team = 8):
         super(SoccerTransformer, self).__init__()
         
-        self.pos_x_embedding = nn.Embedding(105,( d_model - d_model_team) // 2)
-        self.pos_y_embedding = nn.Embedding(68, (d_model - d_model_team) // 2)
-        self.team_embedding = nn.Embedding(3, d_model_team)
+        self.pos_x_embedding = nn.Embedding(105 + 1,( d_model - d_model_team) // 2)
+        self.pos_y_embedding = nn.Embedding(68 + 1, (d_model - d_model_team) // 2)
+        self.team_embedding = nn.Embedding(3 + 1, d_model_team)
         
         self.transformer_encoder = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, batch_first=True),
@@ -29,18 +29,25 @@ class SoccerTransformer(nn.Module):
 
     def forward(self, player_features, mask):
         """
-        player_features: [batch_size, max_len, 5]
+        player_features: [batch_size, max_len, 3]
         """
-
-        # only keep the 0,1,4 features(ignore vx, vy)
         x_grid = torch.floor(player_features[:,:,0] + 52.5).long()
         x_grid = torch.clamp(x_grid, 0, 104)
-        y_grid = torch.floor(player_features[:,:,1] + 34.5).long()
+        y_grid = torch.floor(player_features[:,:,1] + 34).long()
         y_grid = torch.clamp(y_grid, 0, 67)
-        team_id = player_features[:,:,4]
+        team_id = player_features[:,:,2]
         team_id = team_id.clone()
         team_id[team_id == -1] = 2
         team_token = team_id.long() # [batch_size, max_len]
+
+        # 把mask掉的位置填充为x_grid 填充105, y_grid 填充68,team_token 填充3
+        x_grid = torch.where(mask == 0, x_grid, torch.full_like(x_grid, 105))
+        y_grid = torch.where(mask == 0, y_grid, torch.full_like(y_grid, 68))
+        team_token = torch.where(mask == 0, team_token, torch.full_like(team_token, 3))
+
+        # print(x_grid)
+        # print(y_grid)
+        # print(team_token)
 
         grid_x_embedding = self.pos_x_embedding(x_grid)  # [batch_size, max_len, (d_model - d_model_team) // 2]
         grid_y_embedding = self.pos_y_embedding(y_grid)

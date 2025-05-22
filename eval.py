@@ -18,9 +18,9 @@ import cv2
 # ===============================
 
 
-pth_see_all = "checkpoints/see_all/latest/model_latest.pth"
-pth_mask_right = "checkpoints/mask_one_right/latest/model_latest.pth"
-pth_mask_left = "checkpoints/mask_one_left/latest/model_latest.pth"
+pth_see_all = "final_checkpoints/see_all/model_latest.pth"
+pth_mask_right = "final_checkpoints/mask_one_right/model_latest.pth"
+pth_mask_left = "final_checkpoints/mask_one_left/model_latest.pth"
 output_path = "plot"
 video_path_first = "game_example/1_720p.mkv"
 video_path_second = "game_example/2_720p.mkv"
@@ -39,7 +39,7 @@ config = {
     "visualize_sample": 8,
     "weight_decay": 1e-4,
 }
-device = "cuda:7"
+device = "cuda:0"
 
 
 def sample_data(frame_idx, half):
@@ -125,24 +125,24 @@ if __name__ == "__main__":
 
     # player_feature, target, mask = sample_data(21475, "first")
     # dict_ = sample_data(23600, "first")
-    dict_ =[
-{'x': -14.316568900640467, 'y': -9.783667077827891, 'vx': -4.557202273868111, 'vy': 3.531992335658307, 'team_id': 0},
-{'x': -16.12526326025321, 'y': 1.4792967568161055, 'vx': -4.777759023919526, 'vy': 5.375112968657553, 'team_id': 0},
-{'x': -14.276554933798739, 'y': 14.727766403174268, 'vx': -4.738958236427937, 'vy': 4.705132353296282, 'team_id': 0},
-{'x': -7.206119969380019, 'y': 3.9929892579050255, 'vx': -4.293126413366388, 'vy': 3.0733821797480743, 'team_id': 0},
-{'x': -1.4397939423980124, 'y': 9.307832360176183, 'vx': -2.012896328088065, 'vy': 1.6797217783507623, 'team_id': 1},
-{'x': -1.3259927316192313, 'y': -12.729802012021594, 'vx': -3.3779267401997606, 'vy': 0.6574615367628933, 'team_id': 1},
-{'x': -4.534249277782724, 'y': 4.594560995763602, 'vx': -4.203857594629246, 'vy': 2.1974530734902853, 'team_id': 1},
-{'x': -6.685481852390099, 'y': 9.474649597406298, 'vx': -5.088842665815108, 'vy': 5.044995246996953, 'team_id': 0},
-{'x': -6.306445028782631, 'y': 22.352032977186973, 'vx': -4.5775775021133835, 'vy': 3.7004519110953815, 'team_id': 1},
-{'x': -14.802488080643963, 'y': 2.787400285096983, 'vx': -4.4052729008707825, 'vy': 2.413813197191672, 'team_id': 1},
-{'x': 7.036515938003775, 'y': 14.57116654808866, 'vx': -1.321232243387871, 'vy': -0.6112222602602024, 'team_id': 0},
-{'x': 5.161560505689675, 'y': 5.450439408554166, 'vx': -2.5033096532446786, 'vy': -0.45584892329553206, 'team_id': 0},
-{'x': -16.43171705854705, 'y': 8.602372599250419, 'vx': -4.590090410251957, 'vy': 0.21086738692113194, 'team_id': 0},
-{'x': -8.184618006720921, 'y': 10.607565830206047, 'vx': -3.810884218647459, 'vy': 4.142518202433942, 'team_id': 1},
-{'x': -8.184618006720921 - 0.5, 'y': 10.607565830206047 + 0.5, 'vx': -3.810884218647459, 'vy': 4.142518202433942, 'team_id': -1},
+    dict_ = [
+{'x': -44.23622739822611, 'y': -1.9547849436943774, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -44.37101209308466, 'y': 0.37463843024479687, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -41.67832357204627, 'y': 4.744213356001659, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -45.00873817480423, 'y': 11.267736516508405, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -43.64278493475305, 'y': 8.502976837071637, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -42.29527836600289, 'y': 9.137364517754806, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -32.89271016373887, 'y': -7.109893615175834, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -39.25631486799723, 'y': 14.595198404173711, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -29.76055945947013, 'y': 0.3621126874505314, 'vx': 0, 'vy': 0, 'team_id': 0},
+{'x': -36.57462882657698, 'y': -22.36333976906082, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -43.48141703181507, 'y': -2.2688802774303074, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -41.66746409368824, 'y': -0.06613716455816047, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -40.140509842181295, 'y': 10.26805669992733, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -44.35403466305507, 'y': 15.763548108137336, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -34.495495800266056, 'y': 6.594838844660974, 'vx': 0, 'vy': 0, 'team_id': 1},
+{'x': -42.10443894490905, 'y': 0.3015608937675044, 'vx': 0, 'vy': 0, 'team_id': -1},
 ]
-
     print("[")
     for item in dict_:
         print(f"{{'x': {item['x']}, 'y': {item['y']}, 'vx': {item['vx']}, 'vy': {item['vy']}, 'team_id': {item['team_id']}}},")
@@ -192,50 +192,51 @@ if __name__ == "__main__":
     for i in range(len(values)):
         if values[i] != 1000:
             if dict_[i]["team_id"] == 0:
-                values[i] = np.mean(values_0) - values[i]
+                values[i] = values_0 - values[i]
             else:
                 assert dict_[i]["team_id"] == 1
-                values[i] = np.mean(values_1) - values[i]
+                values[i] = values_1 - values[i]
 
     print(values)
 
-    best_position = []
-    for i in range(len(values)):
-        if i< len(dict_):
-            if dict_[i]["team_id"] == -1:
-                best_position.append([0, 0])
-                continue
-            best_value = -1e18
-            flag = 1
-            if dict_[i]["team_id"] == 1:
-                flag = -1
+    # best_position = []
+    # for i in range(len(values)):
+    #     if i< len(dict_):
+    #         if dict_[i]["team_id"] == -1:
+    #             best_position.append([0, 0])
+    #             continue
+    #         best_value = -1e18
+    #         flag = 1
+    #         if dict_[i]["team_id"] == 1:
+    #             flag = -1
 
-            dx_ = None
-            dy_ = None
-            for d_x in range(-2, 3):
-                for d_y in range(-2, 3):
-                    dx =d_x/( 105/2)
-                    dy=d_y/( 68/2)
-                    temp_player_feature = player_feature.clone().detach()
-                    temp_player_feature[i][0] += dx
-                    temp_player_feature[i][1] += dy
-                    temp_predict = model_see_all(temp_player_feature.unsqueeze(0).to(device), mask=mask.unsqueeze(0).to(device))[0].item()
-                    if temp_predict * flag > best_value:
-                        best_value = temp_predict * flag
-                        dx_ = dx
-                        dy_ = dy
-            print(f"best_value: {best_value}, dx: {dx_ * (105/2)}, dy: {dy_ * (68/2)}")
-            best_position.append([dx_, dy_])
-            # values[i] = predict * flag - best_value
+    #         dx_ = None
+    #         dy_ = None
+    #         for d_x in range(-5, 6):
+    #             for d_y in range(-5, 6):
+    #                 dx =d_x
+    #                 dy=d_y
+    #                 temp_player_feature = player_feature.clone().detach()
+    #                 temp_player_feature[i][0] += dx
+    #                 temp_player_feature[i][1] += dy
+    #                 temp_predict = model_see_all(temp_player_feature.unsqueeze(0).to(device), mask=mask.unsqueeze(0).to(device))[0].item()
+    #                 if temp_predict * flag > best_value:
+    #                     best_value = temp_predict * flag
+    #                     dx_ = dx
+    #                     dy_ = dy
+    #         print(f"best_value: {best_value - flag*predict}, dx: {dx_}, dy: {dy_}")
+    #         best_position.append([dx_, dy_])
+    #         values[i] = best_value - flag * predict
+    #         # values[i] = predict * flag - best_value
                     
-        else:
-            best_position.append([0, 0])
-    best_position = np.array(best_position)
+    #     else:
+    #         best_position.append([0, 0])
+    # best_position = np.array(best_position)
 
-    print(values)
+    # print(values)
 
 
-    img = get_pitch_from_pt(player_feature, values, best_position=best_position)
+    img = get_pitch_from_pt(player_feature, values, best_position=None)
 
     # save the image to output_path
     if not os.path.exists(output_path):

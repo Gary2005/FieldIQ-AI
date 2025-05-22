@@ -50,9 +50,9 @@ class SoccerDataset(Dataset):
         print(f"max target: {mx_target}, min target: {mn_target}, len: {len(data)}")
         self.data = data
         self.mx_len = mx_len
-        self.dx = 105/2
-        self.dy = 68/2
-        self.dv = 10
+        # self.dx = 105/2
+        # self.dy = 68/2
+        # self.dv = 10
 
     def __len__(self):
         return len(self.data)
@@ -61,7 +61,7 @@ class SoccerDataset(Dataset):
         players_info, target = self.data[idx]
         players_features = []
         for player in players_info:
-            player_tensor = torch.tensor([player["x"]/self.dx, player["y"]/self.dy, player["vx"]/self.dv, player["vy"]/self.dv, player["team_id"]], dtype=torch.float32)
+            player_tensor = torch.tensor([player["x"], player["y"], player["team_id"]], dtype=torch.float32)
             players_features.append(player_tensor)
 
         padding_mask = torch.zeros((self.mx_len,), dtype=torch.bool)

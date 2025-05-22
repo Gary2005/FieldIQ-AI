@@ -159,7 +159,7 @@ def get_pitch(positions, running_direction, save_dir = 'soccer_pitch.png'):
 def get_pitch_from_pt(features, value=None, best_position = None):
     """
     根据输入特征绘制足球场
-    :param features: Tensor of shape (mx_len, 5), 每一行包含 (x, y, vx, vy, team_id)
+    :param features: Tensor of shape (mx_len, 3), 每一行包含 (x, y, team_id)
     :param value: 可选参数，如果不是 None，则是一个 (mx_len, 1) 的 Tensor，写在每个球员头上的值
     :param best_position: 可选参数，表示最佳位置的坐标, 是一个(mx_len, 2)的 Tensor
     :return: Matplotlib Figure 对象
@@ -253,14 +253,14 @@ def get_pitch_from_pt(features, value=None, best_position = None):
     # 筛选有效球员并获取分数
     valid_players = []
     for idx, player in enumerate(features):
-        x, y, vx, vy, team_id = player.tolist()
-        x_field = x * field_length / 2
-        y_field = y * field_width / 2
+        x, y, team_id = player.tolist()
+        x_field = x
+        y_field = y
 
         if team_id == -1:
             ax.plot(x_field, y_field, 'o', color='green', markersize=10)
 
-        if (x == 0 and y == 0 and vx == 0 and vy == 0):
+        if (x == 0 and y == 0):
             continue
         if int(team_id) not in color_map:
             continue
@@ -275,8 +275,8 @@ def get_pitch_from_pt(features, value=None, best_position = None):
             if idx >= best_position.shape[0]:
                 continue
             best_x, best_y = best_position[idx].tolist()
-            best_x_field = x + best_x * field_length / 2
-            best_y_field = y + best_y * field_width / 2
+            best_x_field = x + best_x
+            best_y_field = y + best_y
             color = color_map[team_id]
             ax.annotate("",
                         xy=(best_x_field, best_y_field),

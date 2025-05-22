@@ -254,8 +254,8 @@ def run_demo(images, model, model_l, visualize=False):
 if __name__ == "__main__":
 
 
-    video_path = "game_example/1_720p.mkv"
-    frame_idxs = [379, 380]
+    # video_path = "game_example/1_720p.mkv"
+    # frame_idxs = [379, 380]
 
     # Load the image
 
@@ -268,10 +268,15 @@ if __name__ == "__main__":
     #     cv2.imwrite(f"{frame_idx}.jpg", frame)
 
     paths = [
-        f"{frame_idx}.jpg" for frame_idx in frame_idxs
+        "tm.png"
     ]
     images = [Image.open(path).convert("RGB") for path in paths]
     model, mdoel_l = load_models()
     annotations = run_demo(images, model, mdoel_l, visualize=True)
     for idx, annotation in enumerate(annotations):
-        print(f"Frame {frame_idxs[idx]}: {len(annotation)} keypoints detected.")
+        print(f"Annotations for image {idx}:")
+        for line in annotation:
+            print(line)
+    from process_dataset import process_anno
+
+    print(process_anno(annotations[0]))

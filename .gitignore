@@ -3,6 +3,7 @@
 2015-09-26 - 17-00 Liverpool 3 - 2 Aston Villa
 2016-01-13 - 22-45 Chelsea 2 - 2 West Brom
 2016-02-07 - 10-00 Chelsea 1 - 1 Manchester United
+2016-09-16 - 22-00 Chelsea 1 - 2 Liverpool
 calibration
 calibration-2023
 game_example
@@ -12,3 +13,4 @@ __pycache__
 plot
 wandb
 checkpoints
+checkpoints_30_10_10
